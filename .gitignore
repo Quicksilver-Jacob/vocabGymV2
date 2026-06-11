@@ -2,6 +2,7 @@
 data/
 tmp-ecdict/
 tmp-roots/
+tmp-morphynet/
 english-vocabulary-master/
 
 # ── Build scripts & tools (not needed at runtime) ──

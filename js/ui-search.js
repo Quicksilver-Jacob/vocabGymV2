@@ -110,6 +110,14 @@ ns.dictionaryLookup = {
       }
 
       if (e.key === 'Escape') {
+        // Close word card first if it's open (higher visual priority)
+        var wordcardOverlay = document.getElementById('wordcard-overlay');
+        if (wordcardOverlay && !wordcardOverlay.classList.contains('hidden')) {
+          e.preventDefault();
+          e.stopPropagation();
+          ns.wordcard.close();
+          return;
+        }
         if (dropdownVisible) {
           e.preventDefault();
           e.stopPropagation();

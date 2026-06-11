@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>English Vocab Gym - Minimalist Dictation Practice</title>
+  <title>English Vocab Gym — IELTS Vocabulary Trainer</title>
   <meta name="theme-color" content="#14b8a6">
 
   <!-- Premium Fonts -->
@@ -68,10 +68,35 @@
   <!-- Clean, Decoupled Custom CSS -->
   <link rel="stylesheet" href="app.css">
   <style>
-
+    /* Loading screen — shown before any JS loads */
+    #app-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #09090b; /* zinc-950 */
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+    }
+    #app-loader.hidden {
+      opacity: 0; visibility: hidden; pointer-events: none;
+    }
+    .loader-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #27272a; /* zinc-800 */
+      border-top-color: #14b8a6; /* brand-500 */
+      border-radius: 50%;
+      animation: loader-spin 0.8s linear infinite;
+    }
+    @keyframes loader-spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body class="h-full flex flex-col justify-between overflow-x-hidden">
+
+  <!-- Loading Screen (shown until app initializes) -->
+  <div id="app-loader">
+    <div class="loader-spinner" style="margin-bottom:16px;"></div>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#71717a;">Loading Vocab Gym…</p>
+  </div>
 
   <!-- Offline Indicator -->
   <div id="offline-indicator" class="hidden bg-amber-500/90 text-black text-center text-xs font-bold py-1.5 px-4">
@@ -97,14 +122,13 @@
         <div class="hidden xl:block">
           <h1 class="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-1.5">
             <span>English Vocab Gym</span>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/25">Dictation</span>
           </h1>
-          <p class="text-xs text-zinc-500">Master standard vocabulary through PC simulation</p>
+          <p class="text-xs text-zinc-500">Train Smarter</p>
         </div>
       </div>
 
       <!-- Central Dictionary Search -->
-      <div id="header-search-wrapper" class="flex-1 max-w-lg">
+      <div id="header-search-wrapper" class="flex-1 max-w-2xl">
         <div class="relative">
           <svg class="h-5 w-5 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -856,7 +880,7 @@
   <!-- FOOTER -->
   <footer class="border-t border-zinc-900 bg-zinc-950/20 py-6 mt-12 text-center text-xs text-zinc-600 font-medium">
     <div class="max-w-7xl mx-auto px-4 flex items-center justify-center gap-4">
-      <p>© 2026 English Vocab Gym. Standard dictation training suite for vocabulary building.</p>
+      <p>© 2026 English Vocab Gym. IELTS vocabulary training suite.</p>
 
     </div>
   </footer>
@@ -877,6 +901,7 @@
   <script src="js/root-data.js"></script>
   <script src="js/root-word-data.js"></script>
   <script src="js/synonym-antonym-data.js"></script>
+  <script src="js/derivational-data.js"></script>
   <script src="js/ui-dashboard.js"></script>
   <script src="js/ui-dictation.js"></script>
   <script src="js/ui-multiple-choice.js"></script>

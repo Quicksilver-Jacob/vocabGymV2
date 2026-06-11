@@ -4,9 +4,27 @@ window.VocabGym = window.VocabGym || {};
 (function(ns) {
   // Unified modal close — single Escape handler for all popovers
   function closeAllModals() {
+    // Priority: word card → search dropdown → profile manager → share → upload
+    var wordcard = document.getElementById('wordcard-overlay');
+    var searchDrop = document.getElementById('dict-dropdown');
+    var searchInput = document.getElementById('header-dict-search');
     var upload = document.getElementById('upload-modal');
     var share = document.getElementById('share-modal');
     var profileMgr = document.getElementById('profile-manage-modal');
+
+    if (wordcard && !wordcard.classList.contains('hidden')) {
+      if (ns.wordcard && ns.wordcard.close) ns.wordcard.close();
+      return;
+    }
+    if (searchDrop && !searchDrop.classList.contains('hidden')) {
+      if (ns.dictionaryLookup && ns.dictionaryLookup.closeDropdown) {
+        ns.dictionaryLookup.closeDropdown(true);
+      } else {
+        searchDrop.classList.add('hidden');
+        if (searchInput) searchInput.blur();
+      }
+      return;
+    }
     if (profileMgr && !profileMgr.classList.contains('hidden')) {
       profileMgr.classList.add('hidden');
       return;
@@ -202,8 +220,14 @@ window.VocabGym = window.VocabGym || {};
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeAllModals();
       });
+
+      // Hide loading screen after full initialization
+      var loader = document.getElementById('app-loader');
+      if (loader) loader.classList.add('hidden');
     }).catch(function(e) {
       console.error('[Bootstrap] Init failed:', e);
+      var loader = document.getElementById('app-loader');
+      if (loader) loader.classList.add('hidden');
       alert('Failed to initialize the app. Please refresh the page.');
     });
   });

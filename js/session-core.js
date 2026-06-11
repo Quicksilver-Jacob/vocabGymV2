@@ -735,6 +735,9 @@ startSession: function(optQueue) {
       return ns.state.commitSessionBuffer();
     }).then(function() {
       self._refreshAllPostSession();
+    }).catch(function(err) {
+      console.error('[Session] Commit failed:', err);
+      self._refreshAllPostSession();
     });
   },
 
@@ -809,9 +812,15 @@ startSession: function(optQueue) {
         return ns.state.commitSessionBuffer();
       }).then(function() {
         self.exitToDashboard();
+      }).catch(function(err) {
+        console.error('[Session] Quit commit failed:', err);
+        self.exitToDashboard();
       });
     } else {
       ns.state.commitSessionBuffer().then(function() {
+        self.exitToDashboard();
+      }).catch(function(err) {
+        console.error('[Session] Quit commit failed:', err);
         self.exitToDashboard();
       });
     }

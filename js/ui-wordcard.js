@@ -17,14 +17,6 @@ ns.wordcard = {
       if (e.target === e.currentTarget) this.close();
     });
 
-    document.addEventListener('keydown', (e) => {
-      const overlay = document.getElementById('wordcard-overlay');
-      if (overlay.classList.contains('hidden')) return;
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        this.close();
-      }
-    });
   },
 
   show(wordId) {
@@ -364,6 +356,66 @@ ns.wordcard = {
         '</div>';
     }
 
+    // ── Derivational Forms (MorphyNet) ──
+    var derivHTML = '';
+    var derivForms = ns.centralDictionary.getDerivationalForms(wordId);
+    if (derivForms.length > 0) {
+      var derivedList = derivForms.filter(function(d) { return d.isSource === 1; });
+      var baseList = derivForms.filter(function(d) { return d.isSource === 0; });
+
+      function makeDerivPill(d, colorClass) {
+        var dId = ns.centralDictionary.getWordId(d.word);
+        var label = d.type === 'suffix' ? '+' + d.morpheme : d.morpheme + '+';
+        var dirLabel = d.isSource === 1
+          ? '<span class="text-[9px] text-zinc-500">' + d.toPOS + '</span>'
+          : '<span class="text-[9px] text-zinc-500">' + d.fromPOS + '</span>';
+        return dId
+          ? '<button class="text-[11px] font-medium ' + colorClass + ' rounded-full px-2.5 py-1 transition-colors wordcard-link flex items-center gap-1.5" data-word-id="' + dId + '">' +
+              '<span>' + ns.wordcard.esc(d.word) + '</span>' +
+              '<span class="text-[9px] opacity-60 font-mono">' + label + '</span>' +
+              dirLabel +
+            '</button>'
+          : '<span class="text-[11px] font-medium ' + colorClass + ' rounded-full px-2.5 py-1 flex items-center gap-1.5 opacity-60">' +
+              '<span>' + ns.wordcard.esc(d.word) + '</span>' +
+              '<span class="text-[9px] font-mono">' + label + '</span>' +
+              dirLabel +
+            '</span>';
+      }
+
+      var derivPills = '';
+      if (derivedList.length > 0) {
+        var pills = derivedList.slice(0, 8).map(function(d) {
+          return makeDerivPill(d, 'text-violet-300 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 hover:border-violet-500/30');
+        }).join('');
+        derivPills += '<div>' +
+          '<h4 class="text-[10px] font-semibold uppercase tracking-wider text-violet-500/80 mb-2 flex items-center gap-1.5">' +
+            '<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>' +
+            'Derived Forms' +
+            '<span class="font-normal text-zinc-600">(' + derivedList.length + ')</span>' +
+          '</h4>' +
+          '<div class="flex flex-wrap gap-1.5">' + pills + '</div>' +
+        '</div>';
+      }
+      if (baseList.length > 0) {
+        var pills2 = baseList.slice(0, 6).map(function(d) {
+          return makeDerivPill(d, 'text-sky-300 bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/20 hover:border-sky-500/30');
+        }).join('');
+        derivPills += (derivPills ? '<div class="mt-2.5">' : '<div>') +
+          '<h4 class="text-[10px] font-semibold uppercase tracking-wider text-sky-500/80 mb-2 flex items-center gap-1.5">' +
+            '<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>' +
+            'Base Words' +
+            '<span class="font-normal text-zinc-600">(' + baseList.length + ')</span>' +
+          '</h4>' +
+          '<div class="flex flex-wrap gap-1.5">' + pills2 + '</div>' +
+        '</div>';
+      }
+
+      derivHTML =
+        '<div class="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-4 mt-3">' +
+          '<div class="space-y-0">' + derivPills + '</div>' +
+        '</div>';
+    }
+
     // ── Assemble full card ──
     container.innerHTML =
       '<div class="space-y-5">' +
@@ -409,6 +461,7 @@ ns.wordcard = {
         '</div>' +
         englishDefHTML +
         synAntHTML +
+        derivHTML +
 
         rootsHTML +
         sentencesHTML +

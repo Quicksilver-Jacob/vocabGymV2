@@ -205,6 +205,27 @@ ns.centralDictionary = {
     return entry ? (entry.synonyms || []) : [];
   },
 
+  // Get derivational forms (from MorphyNet — Wiktionary-derived, 98% precision)
+  // Returns [{id, word, morpheme, type, fromPOS, toPOS, isSource}, ...]
+  // isSource=1: this word is the base, relatedWord is the derived form
+  // isSource=0: this word is a derived form, relatedWord is the base
+  getDerivationalForms(wordId) {
+    if (typeof DERIVATIONAL_DATA === 'undefined') return [];
+    var entry = DERIVATIONAL_DATA[wordId];
+    if (!entry) return [];
+    return entry.map(function(row) {
+      return {
+        id: row[0],
+        word: row[1],
+        morpheme: row[2],
+        type: row[3],
+        fromPOS: row[4],
+        toPOS: row[5],
+        isSource: row[6]
+      };
+    });
+  },
+
   // Get antonyms for a word (from pre-computed WordNet data)
   getAntonyms(wordId) {
     if (typeof SYNONYM_ANTONYM_DATA === 'undefined') return [];
@@ -515,11 +536,12 @@ ns.state = {
         if (delta.manualProficiency !== undefined) merged.manualProficiency = delta.manualProficiency || '';
         ns.db.setProgressCacheSync(pid, wid, merged);
         return ns.db.updateWordProgress(pid, wid, merged);
+      }).catch(function(err) {
+        console.warn('[SessionBuffer] Failed to commit word ' + wid + ':', err);
+        // Don't let one failure break the entire batch
       });
     });
-    return Promise.all(promises).then(function() {
-      // buffer already nulled, new writes go to a fresh buffer if needed
-    });
+    return Promise.all(promises);
   },
 
   // Discard buffer without committing (not currently used, but available for edge cases)

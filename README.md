@@ -20,6 +20,7 @@
 - **Word forms** — 50,401 inflected forms + 67,007 lemma map entries
 - **Root decomposition** — 30,728 prefix/root/suffix breakdowns from MorphoLex (peer-reviewed morphological database), 6,627 morphemes with 76% meaning coverage
 - **Synonyms & Antonyms** — 158,893 synonym pairs + 5,255 antonym pairs across 39,209 words, from WordNet 3.0 + ECDICT
+- **Derivational Forms** — 39,698 derivational pairs across 48,512 words from MorphyNet (Wiktionary-derived, 98% precision), showing word-family relationships like sarcasm→sarcastic
 - **141,714 bilingual example sentences** — Playable via F2
 
 ### SM-2 Spaced Repetition
@@ -48,7 +49,7 @@
 ### UI
 - **Dark theme** — Zinc palette with teal (`#14b8a6`) accents. Responsive, keyboard-driven
 - **Dictionary search** — 4-strategy ranked: prefix → contains → fuzzy (Levenshtein ≤ 2) → Chinese definition. `Ctrl+K` shortcut
-- **Word card overlay** — Exam badges (color-coded), Collins stars, Oxford 3000, root decomposition with mnemonics, word forms, similar words, synonyms (emerald pills), antonyms (rose pills), example sentences (click to speak)
+- **Word card overlay** — Exam badges (color-coded), Collins stars, Oxford 3000, root decomposition with mnemonics, word forms, derivational forms (violet/sky pills), similar words, synonyms (emerald pills), antonyms (rose pills), example sentences (click to speak)
 - **Vocabulary ledger** — Sortable/filterable table with status, accuracy, attempt counts, manual proficiency override
 - **Dashboard stats** — SVG mastery ring, 4-bar proficiency breakdown, SRS panel, book card grid
 - **Profile switcher** — Header dropdown + manage modal (rename, delete, export, merge)
@@ -97,6 +98,7 @@ The **IELTS vocabulary book** (5,382 words) is auto-imported and selected. Click
 | [english-vocabulary-master](https://github.com/zhenghaoyang24/english-vocab) | 103K words, phonetics, Chinese definitions, COCA frequency |
 | ECDICT ([skywind3000/ECDICT](https://github.com/skywind3000/ECDICT)) | Exam tags, Collins/Oxford, English definitions, POS %, word forms, root/affix definitions, synonym groups |
 | [Morphemes JSON](https://github.com/colingoldberg/morphemes) | Morpheme forms, meanings, origins (2,435 groups) |
+| [MorphyNet](https://github.com/kbatsuren/MorphyNet) | Derivational word pairs across all POS (225K English pairs, Wiktionary-sourced) |
 | [MorphoLex-en](https://github.com/hugomailhot/MorphoLex-en) | Peer-reviewed word decompositions (62,471 words) |
 | [WordNet 3.0](https://wordnet.princeton.edu/) | Synonym synsets + antonym pairs |
 | `tb_voc_examples.json` | 141K bilingual example sentences |
@@ -119,6 +121,9 @@ node scripts/build/build-roots.js
 
 # Build synonym/antonym data (WordNet + ECDICT → synonym-antonym-data.js)
 node scripts/build/build-synonyms.js
+
+# Build derivational forms data (MorphyNet → derivational-data.js)
+node scripts/build/build-derivational.js
 ```
 
 ## Architecture
@@ -134,7 +139,7 @@ IIFE modules under window.VocabGym namespace
   │   sync reads from cache, async writes to DB (fire-and-forget or awaited)
   │
   ├─ State (core.js)
-  │   centralDictionary (search, lookup, enrichment, synonyms/antonyms)
+  │   centralDictionary (search, lookup, enrichment, synonyms/antonyms, derivational forms)
   │   state (progress CRUD, proficiency derivation, list management)
   │
   ├─ Session (session-core.js)
@@ -146,7 +151,7 @@ IIFE modules under window.VocabGym namespace
   │   Registered handlers: dictation (standard + hard), multipleChoice (audio + definition)
   │
   ├─ UI (ui-dashboard, ui-wordcard, ui-search, ui-ledger, ui-profiles)
-  │   Dashboard stats, word card overlay (with synonyms/antonyms), dictionary search, ledger table, profile management
+  │   Dashboard stats, word card overlay (with synonyms/antonyms/derivational forms), dictionary search, ledger table, profile management
   │
   └─ Services (srs.js, speech.js, share.js, sw-register.js)
       SM-2 engine, TTS (Web Speech + Youdao), import/export, PWA
@@ -177,6 +182,7 @@ IELTS Vocab Gym/
 │   ├── root-data.js             # 356KB — 6,627 prefix/root/suffix definitions (76% with meanings)
 │   ├── root-word-data.js        # 5.8MB — 30,728 MorphoLex decompositions
 │   ├── synonym-antonym-data.js  # 9.3MB — 39,209 words with synonyms + antonyms
+│   ├── derivational-data.js     # 4.1MB — 48,512 words with derivational forms (MorphyNet)
 │   ├── ielts-vocab-data.js      # 32KB — Built-in IELTS word book
 │   ├── dictionary_mini.json     # 194KB — Compact word-ID mapping
 │   ├── vocab-gym.js             # Bootstrap, mode selection, keyboard routing
@@ -188,7 +194,7 @@ IELTS Vocab Gym/
 │   ├── ui-dashboard.js          # Dashboard, book cards, file upload, stats
 │   ├── ui-dictation.js          # Dictation mode handler
 │   ├── ui-multiple-choice.js    # Multiple choice mode handler
-│   ├── ui-wordcard.js           # Full word card with enrichment + synonyms/antonyms
+│   ├── ui-wordcard.js           # Full word card with enrichment + synonyms/antonyms/derivations
 │   ├── ui-search.js             # Dictionary lookup dropdown
 │   ├── ui-ledger.js             # Sortable vocabulary ledger
 │   ├── ui-profiles.js           # Profile management UI
@@ -202,6 +208,7 @@ IELTS Vocab Gym/
 │       ├── build-ecdict-exchange.js  # JSON → exchange-data.js enrichment
 │       ├── build-roots.js       # MorphoLex + unified dict → root data
 │       └── build-synonyms.js    # WordNet + ECDICT → synonym/antonym data
+│       └── build-derivational.js # MorphyNet → derivational forms data
 ├── books/                       # Source Excel vocabulary books
 ├── icons/                       # PWA icons (192px, 512px)
 └── data/                        # Legacy data sources
