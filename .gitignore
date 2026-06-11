@@ -1,0 +1,33 @@
+# ── Source datasets (too large, download separately) ──
+data/
+tmp-ecdict/
+tmp-roots/
+english-vocabulary-master/
+
+# ── Build scripts & tools (not needed at runtime) ──
+scripts/
+tools/
+
+# ── Build artifacts / unused ──
+js/dictionary.json
+js/dictionary_mini.json
+
+# ── AI-facing docs ──
+relay.md
+
+# ── Claude Code internal files ──
+.claude/
+CLAUDE.md
+
+# ── IDE / OS ──
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+node_modules/
+
+# ── Temp files ──
+*.pyc
+__pycache__/
+tempCodeRunnerFile.*

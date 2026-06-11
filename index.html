@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Vocab Gym - Minimalist Dictation Practice</title>
+  <meta name="theme-color" content="#14b8a6">
+
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f2fcf9',
+              100: '#e6faf4',
+              200: '#c0f3e3',
+              300: '#9aecc1',
+              400: '#4edba1',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              800: '#115e59',
+              900: '#134e4a',
+            }
+          },
+          animation: {
+            'pulse-subtle': 'pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'bounce-soft': 'bounceSoft 1.5s infinite',
+            'shake': 'shake 0.4s ease-in-out',
+            'fade-in': 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          },
+          keyframes: {
+            pulseSubtle: {
+              '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+              '50%': { transform: 'scale(1.03)', opacity: '0.9' },
+            },
+            bounceSoft: {
+              '0%, 100%': { transform: 'translateY(0)', animationTimingFunction: 'cubic-bezier(0.8,0,1,1)' },
+              '50%': { transform: 'translateY(-6px)', animationTimingFunction: 'cubic-bezier(0,0,0.2,1)' },
+            },
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%, 60%': { transform: 'translateX(-4px)' },
+              '40%, 80%': { transform: 'translateX(4px)' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(8px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Clean, Decoupled Custom CSS -->
+  <link rel="stylesheet" href="app.css">
+  <style>
+
+  </style>
+</head>
+<body class="h-full flex flex-col justify-between overflow-x-hidden">
+
+  <!-- Offline Indicator -->
+  <div id="offline-indicator" class="hidden bg-amber-500/90 text-black text-center text-xs font-bold py-1.5 px-4">
+    You are offline. Some features may be limited.
+  </div>
+
+  <!-- Update Banner -->
+  <div id="update-banner" class="hidden bg-brand-500/90 text-black text-center text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-3">
+    <span>A new version is available.</span>
+    <button id="btn-update-reload" class="underline font-black">Refresh</button>
+    <button id="btn-update-dismiss" class="text-black/60 hover:text-black">Dismiss</button>
+  </div>
+
+  <!-- HEADER -->
+  <header class="border-b border-zinc-900 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center space-x-3 flex-shrink-0">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 18.75V5.25L7.75 9.5H4.5v5h3.25L12 18.75z" />
+          </svg>
+        </div>
+        <div class="hidden xl:block">
+          <h1 class="text-xl font-bold tracking-tight text-zinc-100 flex items-center gap-1.5">
+            <span>English Vocab Gym</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/25">Dictation</span>
+          </h1>
+          <p class="text-xs text-zinc-500">Master standard vocabulary through PC simulation</p>
+        </div>
+      </div>
+
+      <!-- Central Dictionary Search -->
+      <div id="header-search-wrapper" class="flex-1 max-w-lg">
+        <div class="relative">
+          <svg class="h-5 w-5 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" id="header-dict-search" placeholder="Search..."
+            class="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl px-11 py-2.5 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-zinc-900 transition-all duration-200" />
+          <kbd class="hidden sm:inline absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded">Ctrl+K</kbd>
+
+          <!-- Dictionary Search Dropdown -->
+          <div id="dict-dropdown" class="hidden absolute left-0 right-0 top-full mt-2 z-50 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/60 overflow-hidden animate-fade-in max-h-[78vh] flex flex-col">
+            <div class="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-zinc-950/60 flex-shrink-0">
+              <svg class="h-4 w-4 text-brand-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p id="dict-dropdown-count" class="text-xs text-zinc-500 flex-1">0 words found</p>
+              <span class="text-[10px] text-zinc-600 font-mono">ESC to close</span>
+            </div>
+            <div id="dict-dropdown-results" class="flex-1 overflow-y-auto p-2">
+              <p class="text-zinc-500 text-xs text-center py-8">Type to search the dictionary</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Quick Wordlist Summary Ring -->
+      <div id="header-stats" class="hidden sm:flex items-center gap-4 flex-shrink-0">
+        <div class="flex items-center gap-2 pl-0">
+          <div class="text-center">
+            <div id="stat-count-mastered" class="text-sm font-bold text-emerald-400">0</div>
+            <div class="text-[9px] uppercase tracking-wider text-zinc-500">Mastered</div>
+          </div>
+          <div class="h-6 border-r border-zinc-900 mx-0.5"></div>
+          <div class="text-center">
+            <div id="stat-count-reviewing" class="text-sm font-bold text-amber-400">0</div>
+            <div class="text-[9px] uppercase tracking-wider text-zinc-500">Reviewing</div>
+          </div>
+          <div class="h-6 border-r border-zinc-900 mx-0.5"></div>
+          <div class="text-center">
+            <div id="stat-count-learning" class="text-sm font-bold text-sky-400">0</div>
+            <div class="text-[9px] uppercase tracking-wider text-zinc-500">Learning</div>
+          </div>
+          <div class="h-6 border-r border-zinc-900 mx-0.5"></div>
+          <div class="text-center">
+            <div id="stat-count-unlearned" class="text-sm font-bold text-zinc-400">0</div>
+            <div class="text-[9px] uppercase tracking-wider text-zinc-500">Unlearned</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Install App Button (hidden by default, shown on beforeinstallprompt) -->
+      <button id="btn-install-app" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand-500/30 text-brand-400 hover:bg-brand-500/10 transition-all flex-shrink-0">Install App</button>
+    </div>
+  </header>
+
+  <!-- MAIN CANVAS -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col justify-start">
+    
+    <!-- 1. DASHBOARD / PRE-LEARNING VIEW -->
+    <div id="dashboard-view" class="space-y-8 animate-fade-in">
+
+      <!-- Profile Switcher -->
+      <div id="profile-switcher" class="flex items-center gap-3 flex-shrink-0 bg-zinc-900/40 border border-zinc-800/50 rounded-xl px-3 py-2">
+        <div class="flex items-center gap-2">
+          <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-brand-500 to-emerald-500 flex items-center justify-center">
+            <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Profile</span>
+        </div>
+        <select id="profile-select" class="bg-zinc-900/80 border border-zinc-800 rounded-lg px-2.5 py-2 text-xs text-zinc-300 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 max-w-[160px] truncate"></select>
+        <button id="btn-new-profile" class="text-[11px] text-brand-400 hover:text-brand-300 font-medium flex-shrink-0 transition-colors">+New</button>
+        <button id="btn-manage-profiles" class="text-[11px] text-zinc-500 hover:text-zinc-300 font-medium flex-shrink-0 transition-colors">Manage</button>
+      </div>
+
+      <!-- Top Overview Panel -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Panel: Data Source & Book Vault -->
+        <div class="lg:col-span-5 flex flex-col space-y-6">
+          <div class="glass-card rounded-2xl p-6 flex flex-col h-full justify-between">
+            <div class="space-y-5">
+              
+              <!-- Title row with upload button -->
+              <div class="flex items-start justify-between">
+                <div>
+                  <h2 class="text-lg font-bold text-zinc-100">Vocabulary Source</h2>
+                  <p class="text-sm text-zinc-400 mt-0.5">Manage workbooks and build your study pool</p>
+                </div>
+                <button id="btn-open-upload" class="btn-secondary py-2 px-3.5 text-xs flex items-center gap-1.5 flex-shrink-0">
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Import
+                </button>
+              </div>
+
+              <!-- Book Cards -->
+              <div>
+                <div class="flex items-center justify-between mb-2.5">
+                  <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Your Books</h3>
+                  <div class="flex items-center gap-0.5">
+                    <button id="picker-select-all" class="text-[10px] text-brand-400 hover:text-brand-300 font-medium px-2 py-0.5 rounded hover:bg-brand-500/5 transition-colors">All</button>
+                    <span class="text-zinc-700 text-[10px]">|</span>
+                    <button id="picker-deselect-all" class="text-[10px] text-zinc-500 hover:text-zinc-300 font-medium px-2 py-0.5 rounded hover:bg-zinc-800 transition-colors">None</button>
+                    <span class="w-2"></span>
+                    <button id="btn-delete-selected" class="text-[10px] text-rose-500 hover:text-rose-400 font-medium px-2 py-0.5 rounded hover:bg-rose-950/20 transition-colors">Delete</button>
+                  </div>
+                </div>
+                <div id="book-cards-grid" class="grid grid-cols-2 gap-2 max-h-[340px] overflow-y-auto pr-1 px-0.5 py-0.5">
+                  <p class="text-zinc-500 text-xs text-center py-4 col-span-2">No books imported yet</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- List Progress Ring metrics (always visible, no layout toggle) -->
+            <div id="list-stats-card" class="mt-6 pt-6 border-t border-zinc-900 space-y-4">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">List Mastery Statistics</h3>
+              <div class="flex items-center gap-4">
+                <div class="relative flex items-center justify-center">
+                  <svg class="w-16 h-16 transform -rotate-90">
+                    <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="5" class="text-zinc-800" fill="transparent" />
+                    <circle id="mastery-progress-circle" cx="32" cy="32" r="28" stroke="currentColor" stroke-width="5" class="text-brand-500" fill="transparent" stroke-dasharray="176" stroke-dashoffset="176" stroke-linecap="round" />
+                  </svg>
+                  <span id="mastery-progress-percent" class="absolute text-xs font-bold text-zinc-100">0%</span>
+                </div>
+                <div class="flex-grow space-y-1">
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-zinc-400">Total Database Words</span>
+                    <span id="total-words-metric" class="font-bold text-zinc-200">0</span>
+                  </div>
+                  <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden flex">
+                    <div id="bar-mastered" class="bg-emerald-500 h-full" style="width: 0%"></div>
+                    <div id="bar-reviewing" class="bg-amber-500 h-full" style="width: 0%"></div>
+                    <div id="bar-learning" class="bg-sky-500 h-full" style="width: 0%"></div>
+                    <div id="bar-unlearned" class="bg-zinc-700 h-full" style="width: 0%"></div>
+                  </div>
+                  <div class="flex justify-between items-center text-[10px] text-zinc-500 pt-0.5 flex-wrap gap-x-3 gap-y-0.5">
+                    <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Mastered</span>
+                    <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Reviewing</span>
+                    <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>Learning</span>
+                    <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>Unlearned</span>
+                  </div>
+                </div>
+              </div>
+              <p id="stats-empty-hint" class="text-[11px] text-zinc-500 text-center">Select a book to populate statistics</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right Panel: Session Workout Configuration -->
+        <div class="lg:col-span-7">
+          <div class="glass-card rounded-2xl p-6 flex flex-col justify-between h-full space-y-6">
+            <div>
+              <h2 class="text-lg font-bold text-zinc-100">Configure Workout Session</h2>
+              <p class="text-sm text-zinc-400 mt-0.5">Choose mode and tailor the queue for optimal review</p>
+            </div>
+
+            <!-- Session Mode Selector -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Mode</h3>
+              <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                <button id="mode-btn-dictation" class="mode-select-btn text-xs font-semibold px-3 py-1.5 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="dictation">Dictation</button>
+                <button id="mode-btn-mc" class="mode-select-btn text-xs font-semibold px-3 py-1.5 rounded-md transition-all text-zinc-500 hover:text-zinc-200" data-mode="multipleChoice">Multiple Choice</button>
+              </div>
+              <!-- Dictation sub-options -->
+              <div id="dictation-sub-options" class="hidden">
+                <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="dictation" data-value="standard">Standard</button>
+                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-mode="dictation" data-value="hard">Hard</button>
+                </div>
+              </div>
+              <!-- Multiple Choice sub-options -->
+              <div id="mc-sub-options" class="hidden">
+                <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="mc" data-value="audio">Listen &amp; Pick</button>
+                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-mode="mc" data-value="definition">See Word &amp; Pick</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <!-- Session Filters -->
+              <div class="space-y-4">
+                                <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Target Filters</h3>
+                <div class="space-y-3">
+                  <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="radio" name="session-filter" value="unlearned" checked class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
+                    <div>
+                      <span class="text-sm font-semibold text-brand-400 group-hover:text-brand-300 transition-colors flex items-center gap-1.5">
+                        Unlearned Words
+                        <span class="text-[10px] bg-brand-500/10 border border-brand-500/20 text-brand-400 px-1.5 py-0.2 rounded-full">Default</span>
+                      </span>
+                      <p class="text-xs text-zinc-500">Words yet to be attempted or studied</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="radio" name="session-filter" value="all" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
+                    <div>
+                      <span class="text-sm font-semibold text-zinc-200 group-hover:text-zinc-100 transition-colors">All Vocabulary Words</span>
+                      <p class="text-xs text-zinc-500">Include every active word in your list</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="radio" name="session-filter" value="reviewing" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
+                    <div>
+                      <span class="text-sm font-semibold text-amber-400 group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
+                        Learning + Reviewing
+                      </span>
+                      <p class="text-xs text-zinc-500">Words in active SRS rotation that still need practice</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="radio" name="session-filter" value="low-accuracy" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
+                    <div>
+                      <span class="text-sm font-semibold text-rose-400 group-hover:text-rose-300 transition-colors flex items-center gap-1.5">
+                        Low Accuracy Words
+                      </span>
+                      <div class="flex items-center gap-2 mt-1">
+                        <span class="text-xs text-zinc-500">Accuracy rate lower than:</span>
+                        <div class="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-0.5 w-16">
+                          <input type="number" id="accuracy-threshold" value="60" min="1" max="100" class="w-8 bg-transparent text-xs text-center focus:outline-none font-bold text-zinc-200" />
+                          <span class="text-[10px] text-zinc-500">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Word order -->
+                <div class="pt-3 border-t border-zinc-800/50">
+                  <h4 class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Word Order</h4>
+                  <div class="space-y-2">
+                    <label class="flex items-start gap-3 cursor-pointer group">
+                      <input type="radio" name="session-order" value="shuffled" checked class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
+                      <div>
+                        <span class="text-sm font-semibold text-zinc-200 group-hover:text-zinc-100 transition-colors">Shuffled</span>
+                        <p class="text-xs text-zinc-500">Randomize words each session</p>
+                      </div>
+                    </label>
+                    <label class="flex items-start gap-3 cursor-pointer group">
+                      <input type="radio" name="session-order" value="book-order" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
+                      <div>
+                        <span class="text-sm font-semibold text-zinc-200 group-hover:text-zinc-100 transition-colors">Book Order</span>
+                        <p class="text-xs text-zinc-500">Sequential, as listed in your word books</p>
+                      </div>
+                    </label>
+                  </div>
+                  <!-- SM-2 Review Ratio Slider -->
+                  <div class="pt-2.5 mt-2 border-t border-zinc-800/30">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-sm font-semibold text-zinc-200">SM-2 Review Ratio</span>
+                      <span class="text-xs font-mono font-bold text-brand-400"><span id="srs-ratio-value">0</span>%</span>
+                    </div>
+                    <p class="text-xs text-zinc-500 mb-2">Mix SRS due words into the session queue</p>
+                    <div class="flex items-center gap-3">
+                      <span class="text-[10px] text-zinc-600 w-8 text-right">Filter</span>
+                      <input type="range" id="srs-ratio-slider" min="0" max="100" value="0" step="5"
+                        class="flex-1 h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer
+                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-500
+                          [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-brand-500/30
+                          [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform
+                          [&::-webkit-slider-thumb]:hover:scale-110" />
+                      <span class="text-[10px] text-zinc-600 w-10">Review</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Setup inputs & Speech panel -->
+              <div class="space-y-4">
+                
+                <!-- Speed timer setting -->
+                <div class="space-y-2">
+                  <label for="session-timer" class="block text-xs font-semibold uppercase tracking-wider text-zinc-500">Time Limit per Word</label>
+                  <div class="relative">
+                    <input type="number" id="session-timer" placeholder="Infinite" min="3" max="120" class="input-premium py-2.5 text-sm pr-12" />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-500 uppercase">Secs</span>
+                  </div>
+                  <p class="text-[11px] text-zinc-500">Seconds to spell each word. Leave blank for endless time.</p>
+                </div>
+
+                <!-- Session size setting -->
+                <div class="space-y-2">
+                  <label for="session-size" class="block text-xs font-semibold uppercase tracking-wider text-zinc-500">Words per Session</label>
+                  <div class="relative">
+                    <input type="number" id="session-size" value="20" placeholder="All matching" min="1" class="input-premium py-2.5 text-sm pr-16" />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-500 uppercase">Words</span>
+                  </div>
+                  <p class="text-[11px] text-zinc-500">Number of words to test. Leave blank to queue all matching words.</p>
+                </div>
+
+                <!-- Audio Profile -->
+                <div class="space-y-3 bg-zinc-900/30 border border-zinc-800/80 p-3 rounded-xl">
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Audio Profile</h4>
+                    <button id="btn-test-audio" class="text-[11px] text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors">
+                      <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                      Test
+                    </button>
+                  </div>
+
+                  <!-- TTS Source -->
+                  <div class="space-y-1.5">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">TTS Engine</span>
+                    <div class="grid grid-cols-2 gap-1.5">
+                      <button id="dashboard-source-youdao" class="text-xs font-semibold py-1.5 px-2 rounded-lg border transition-all tts-source-btn whitespace-nowrap" data-source="youdao">🎙 Youdao</button>
+                      <button id="dashboard-source-webspeech" class="text-xs font-semibold py-1.5 px-2 rounded-lg border transition-all tts-source-btn whitespace-nowrap" data-source="webspeech">🌐 Web Speech</button>
+                    </div>
+                  </div>
+
+                  <!-- Youdao settings -->
+                  <div id="dashboard-youdao-settings" class="space-y-1.5">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Accent</span>
+                    <div class="flex items-center gap-2">
+                      <button id="dashboard-accent-uk" class="flex-1 text-xs font-semibold py-1.5 rounded-lg border transition-all accent-toggle-btn" data-accent="uk">UK</button>
+                      <button id="dashboard-accent-us" class="flex-1 text-xs font-semibold py-1.5 rounded-lg border transition-all accent-toggle-btn" data-accent="us">US</button>
+                    </div>
+                  </div>
+
+                  <!-- Web Speech settings -->
+                  <div id="dashboard-webspeech-settings" class="hidden space-y-1.5">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Voice</span>
+                    <select id="voice-selector" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    </select>
+                  </div>
+
+                  <!-- Speech Rate (shared) -->
+                  <div class="space-y-1.5">
+                    <div class="flex justify-between text-[11px] text-zinc-500">
+                      <span>Speech Rate</span>
+                      <span id="rate-value" class="font-bold text-zinc-300">1.0x</span>
+                    </div>
+                    <input type="range" id="voice-rate" min="0.5" max="1.8" step="0.1" value="1.0" class="w-full accent-brand-500 bg-zinc-800 h-1 rounded-lg cursor-pointer" />
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Start Session Button -->
+            <button id="btn-start-session" disabled class="btn-primary w-full py-4 text-base tracking-wide flex items-center justify-center opacity-50 cursor-not-allowed">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              <span>Launch Training Session</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- KEYBOARD CHEATSHEET QUICK PANEL -->
+      <div class="glass-card rounded-2xl p-4 flex flex-wrap gap-6 items-center justify-around border-zinc-800/40 text-xs text-zinc-400 bg-zinc-950/20">
+        <span class="font-semibold text-zinc-300 flex items-center gap-1.5">
+          <svg class="h-4 w-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+          Keyboard Hotkeys:
+        </span>
+        <div class="flex items-center gap-2">
+          <kbd class="bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded font-mono font-bold text-[10px]">Enter</kbd>
+          <span>Confirm answer / Next word</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <kbd class="bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded font-mono font-bold text-[10px]">`</kbd>
+          <span>Cycle Proficiency Level</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <kbd class="bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded font-mono font-bold text-[10px]">Ctrl + Space</kbd>
+          <span>Replay Pronunciation Audio</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <kbd class="bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded font-mono font-bold text-[10px]">F2</kbd>
+          <span>Play Sample Sentence</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 2. CORE DICTATION VIEW -->
+    <div id="dictation-view" class="hidden max-w-6xl w-full mx-auto animate-fade-in space-y-6">
+      
+      <!-- Session Nav Bar: exit + progress bar integrated + layout toggles -->
+      <div class="relative bg-zinc-900/40 border border-zinc-800/50 rounded-xl">
+        <!-- Progress bar edge -->
+        <div class="absolute top-0 left-0 right-0 h-[3px] bg-zinc-800">
+          <div id="session-progress-bar" class="h-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="flex items-center px-4 py-2 gap-3 pt-[5px]">
+          <!-- Left: navigation + progress -->
+          <button id="btn-quit-session" class="text-xs font-semibold text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors flex-shrink-0">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Exit
+          </button>
+
+          <div class="h-5 border-r border-zinc-800 flex-shrink-0"></div>
+
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs text-zinc-400 font-semibold tabular-nums">
+              <span id="current-word-index" class="text-zinc-100 font-bold">1</span><span class="text-zinc-500">/</span><span id="total-session-words" class="text-zinc-500">10</span>
+            </span>
+            <div id="streak-indicator" class="hidden items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold rounded-lg transition-all animate-pulse-subtle">
+              <span>Streak: <span id="streak-count">0</span>🔥</span>
+            </div>
+          </div>
+
+          <!-- Right: layout + audio (pushed right) -->
+          <div class="ml-auto flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-0.5">
+              <button id="btn-layout-vertical" class="layout-toggle-btn p-1.5 rounded-md border transition-all text-zinc-400 bg-zinc-800/60 border-zinc-700 hover:text-zinc-200" data-layout="vertical" title="Stacked">
+                <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="7" rx="1"/><rect x="4" y="14" width="16" height="7" rx="1"/></svg>
+              </button>
+              <button id="btn-layout-horizontal-right" class="layout-toggle-btn p-1.5 rounded-md border transition-all text-zinc-500 bg-transparent border-transparent hover:text-zinc-200 hover:bg-zinc-800/60 hover:border-zinc-700" data-layout="horizontal-right" title="Word card on right">
+                <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="9" height="16" rx="1"/><rect x="15" y="4" width="6" height="16" rx="1"/></svg>
+              </button>
+              <button id="btn-layout-horizontal-left" class="layout-toggle-btn p-1.5 rounded-md border transition-all text-zinc-500 bg-transparent border-transparent hover:text-zinc-200 hover:bg-zinc-800/60 hover:border-zinc-700" data-layout="horizontal-left" title="Word card on left">
+                <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="6" height="16" rx="1"/><rect x="12" y="4" width="9" height="16" rx="1"/></svg>
+              </button>
+            </div>
+
+            <div class="relative flex-shrink-0" id="voice-settings-wrapper">
+            <button id="btn-voice-settings" class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 rounded-lg px-2.5 py-1.5 transition-all">
+              <svg class="h-3.5 w-3.5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M6.5 8.8l4.7-3.5a.5.5 0 01.8.4v12.6a.5.5 0 01-.8.4L6.5 15.2H3.5a1 1 0 01-1-1v-4.4a1 1 0 011-1h3z" />
+              </svg>
+              <span id="active-voice-label" class="max-w-[90px] truncate text-zinc-300">Auto</span>
+              <svg class="h-3 w-3 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div id="voice-popover" class="hidden absolute right-0 top-full mt-2 w-72 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl shadow-black/60 z-[100] overflow-hidden animate-fade-in">
+              <!-- TTS Source toggle -->
+              <div class="px-3 py-2.5 border-b border-zinc-800">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 block mb-2">TTS Source</span>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <button id="popover-source-youdao" class="text-xs font-semibold py-1.5 px-2 rounded-lg border transition-all tts-source-btn whitespace-nowrap" data-source="youdao">🎙 Youdao</button>
+                  <button id="popover-source-webspeech" class="text-xs font-semibold py-1.5 px-2 rounded-lg border transition-all tts-source-btn whitespace-nowrap" data-source="webspeech">🌐 Web Speech</button>
+                </div>
+              </div>
+              <!-- Youdao settings (shown when Youdao is active) -->
+              <div id="popover-youdao-settings">
+                <div class="px-3 py-2 flex items-center gap-2">
+                  <button id="popover-accent-uk" class="flex-1 text-xs font-semibold py-1.5 rounded-lg border transition-all accent-toggle-btn" data-accent="uk">UK</button>
+                  <button id="popover-accent-us" class="flex-1 text-xs font-semibold py-1.5 rounded-lg border transition-all accent-toggle-btn" data-accent="us">US</button>
+                </div>
+                <div class="border-t border-zinc-800 px-3 py-2 flex items-center gap-2">
+                  <span class="text-[10px] text-zinc-500 flex-shrink-0">Rate</span>
+                  <input type="range" id="popover-voice-rate" min="0.5" max="1.8" step="0.1" value="1.0" class="flex-1 accent-brand-500 h-1 cursor-pointer" />
+                  <span class="text-[10px] text-zinc-400 font-mono w-8 text-right flex-shrink-0" id="popover-rate-value">1.0x</span>
+                </div>
+              </div>
+              <!-- Web Speech settings (shown when Web Speech is active) -->
+              <div id="popover-webspeech-settings" class="hidden">
+                <div class="border-b border-zinc-800 px-3 py-2">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Voice</span>
+                </div>
+                <div class="py-1 max-h-[180px] overflow-y-auto" id="voice-popover-list"></div>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <!-- Hidden native selects for sync -->
+          <select id="session-voice-selector" class="hidden"></select>
+          <input type="range" id="session-voice-rate" min="0.5" max="1.8" step="0.1" value="1.0" class="hidden" />
+        </div>
+      </div>
+
+
+
+      <!-- Dictation Layout Wrapper: input card + word card panel (layout toggle controls direction) -->
+      <div id="dictation-layout-wrapper" class="w-full max-w-5xl mx-auto flex flex-col gap-5">
+
+        <!-- Mode Card (content injected by active mode) -->
+        <div id="dictation-card" class="glass-card rounded-3xl p-6 transition-all duration-300 flex-1 min-w-0 overflow-hidden">
+          <div id="mode-content-area" class="flex flex-col items-center justify-between h-full"></div>
+        </div>
+
+        <!-- Word Card Panel -->
+        <div id="session-wordcard-panel" class="glass-card rounded-3xl p-5 flex-1 min-w-0" style="perspective: 1000px;">
+          <div id="session-wordcard-flipper" class="relative w-full h-full" style="min-height: 420px; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);">
+            <!-- Front face -->
+            <div id="session-wordcard-front" class="absolute inset-0 rounded-2xl bg-zinc-900/30 border border-zinc-800/40 flex flex-col items-center justify-center gap-3" style="backface-visibility: hidden;">
+              <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-800/40 border border-zinc-700/40 flex items-center justify-center">
+                <svg class="h-6 w-6 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+              </div>
+              <p class="text-zinc-400 text-sm font-semibold">Listen &amp; type to reveal</p>
+              <p class="text-zinc-600 text-xs">Word details appear here</p>
+            </div>
+            <!-- Back face -->
+            <div id="session-wordcard-back" class="absolute inset-0 rounded-2xl bg-zinc-900/30 border border-zinc-800/40 overflow-y-auto" style="backface-visibility: hidden; transform: rotateY(180deg);">
+              <div id="session-wordcard-content" class="p-5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. POST-SESSION REPORT VIEW -->
+    <div id="results-view" class="hidden max-w-4xl w-full mx-auto animate-fade-in space-y-8">
+      
+      <!-- Top Overview Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="glass-card rounded-2xl p-5 flex flex-col items-center text-center justify-between border-zinc-800/50">
+          <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Overall Accuracy</span>
+          <h3 id="result-stat-accuracy" class="text-3xl font-black text-brand-400 my-2">0%</h3>
+          <span class="text-xs text-zinc-500 font-medium">Spelling correctness</span>
+        </div>
+        <div class="glass-card rounded-2xl p-5 flex flex-col items-center text-center justify-between border-zinc-800/50">
+          <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Completed Queue</span>
+          <h3 id="result-stat-count" class="text-3xl font-black text-zinc-200 my-2">0/0</h3>
+          <span class="text-xs text-zinc-500 font-medium">Vocabulary words tested</span>
+        </div>
+        <div class="glass-card rounded-2xl p-5 flex flex-col items-center text-center justify-between border-zinc-800/50">
+          <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Avg Speed / Word</span>
+          <h3 id="result-stat-speed" class="text-3xl font-black text-zinc-200 my-2">0.0s</h3>
+          <span class="text-xs text-zinc-500 font-medium">Time spent typing</span>
+        </div>
+        <div class="glass-card rounded-2xl p-5 flex flex-col items-center text-center justify-between border-zinc-800/50">
+          <span class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Best Streak</span>
+          <h3 id="result-stat-streak" class="text-3xl font-black text-amber-400 my-2">🔥 0</h3>
+          <span class="text-xs text-zinc-500 font-medium">Max consecutive correct</span>
+        </div>
+      </div>
+
+      <!-- Action Panel -->
+      <div class="flex gap-4 items-center justify-center">
+        <button id="btn-replay-session" class="btn-primary px-8">
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          Start Another Session
+        </button>
+        <button id="btn-results-home" class="btn-secondary px-6">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+          Return to Dashboard
+        </button>
+      </div>
+
+      <!-- Tested Words List Panel -->
+      <div class="glass-card rounded-2xl p-6 space-y-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-base font-bold text-zinc-200">Session Breakdown</h3>
+            <p class="text-xs text-zinc-500 mt-0.5">Comprehensive audit trail of tested vocabulary</p>
+          </div>
+          <div class="relative w-64">
+            <input type="text" id="tested-search" placeholder="Search spelling/translation..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 text-zinc-200" />
+          </div>
+        </div>
+
+        <div id="tested-words-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-1">
+          <!-- Dynamically populated tested cards -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SRS Dashboard Panel -->
+    <div id="srs-panel" class="hidden glass-card rounded-2xl p-6 space-y-4 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-zinc-100">Spaced Repetition</h2>
+          <p class="text-sm text-zinc-400 mt-0.5">SM-2 spaced repetition schedule</p>
+        </div>
+        <button id="btn-start-srs-review" class="btn-primary py-2 px-5 text-sm font-semibold flex items-center gap-2 opacity-50 cursor-not-allowed" disabled>
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Loading...</span>
+        </button>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-center">
+          <div id="srs-due-today" class="text-2xl font-bold text-brand-400">-</div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">Due Today</div>
+        </div>
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-center">
+          <div id="srs-due-week" class="text-2xl font-bold text-amber-400">-</div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">Due This Week</div>
+        </div>
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-center">
+          <div id="srs-in-rotation" class="text-2xl font-bold text-zinc-300">-</div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">In Rotation</div>
+        </div>
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-center">
+          <div id="srs-avg-retention" class="text-2xl font-bold text-emerald-400">-</div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">Avg Retention</div>
+        </div>
+      </div>
+      <div class="border-t border-zinc-900 pt-3">
+        <span class="text-[10px] uppercase tracking-wider text-zinc-600 mr-2">Up Next</span>
+        <div id="srs-due-preview" class="inline-flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs text-zinc-600">Loading...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. WORD BANK INSPECTION TABLE -->
+    <div id="word-ledger-container" class="mt-12 space-y-6 relative">
+      <div class="glass-card rounded-2xl p-6 space-y-6">
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-zinc-100">Vocabulary Ledger</h2>
+            <p class="text-sm text-zinc-400 mt-0.5">Explore, search, filter, and manually curate your vocabulary database</p>
+          </div>
+          <div class="flex flex-wrap gap-1.5 items-center">
+            <input type="text" id="ledger-search" placeholder="Search spelling/translation..." class="w-48 bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 text-zinc-200" />
+            <select id="ledger-status-filter" class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 text-zinc-300">
+              <option value="all">All Levels</option>
+              <option value="unlearned">Unlearned</option>
+              <option value="learning">Learning</option>
+              <option value="reviewing">Reviewing</option>
+              <option value="mastered">Mastered</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-zinc-900">
+          <table class="w-full table-fixed divide-y divide-zinc-900 text-left text-sm text-zinc-300">
+            <thead class="bg-zinc-900/50 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              <tr>
+                <th scope="col" class="w-[18%] px-6 py-4">Vocabulary Word</th>
+                <th scope="col" class="w-[15%] px-6 py-4">Phonetics</th>
+                <th scope="col" class="w-[35%] px-6 py-4">Translation (Meaning)</th>
+                <th scope="col" class="w-[8%] px-6 py-4 text-center">Attempts</th>
+                <th scope="col" class="w-[8%] px-6 py-4 text-center">Accuracy</th>
+                <th scope="col" class="w-[16%] px-6 py-4 text-right">Mastery State</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-table-body" class="divide-y divide-zinc-900 bg-zinc-950/20">
+              <tr>
+                <td colspan="6" class="text-center py-12 text-zinc-500 font-medium">No active vocabulary list is selected. Upload an Excel list above to populate.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="ledger-pagination" class="hidden flex items-center justify-between border-t border-zinc-900 pt-4 text-xs">
+          <div class="text-zinc-500 flex items-center gap-3">
+            <span>Showing <span id="ledger-page-start" class="font-bold text-zinc-300">1</span> to <span id="ledger-page-end" class="font-bold text-zinc-300">15</span> of <span id="ledger-total-rows" class="font-bold text-zinc-300">3800</span> records</span>
+            <select id="ledger-limit-select" class="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-brand-500 text-zinc-400">
+              <option value="15">15 / page</option>
+              <option value="30">30 / page</option>
+              <option value="50">50 / page</option>
+              <option value="100">100 / page</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <div class="flex gap-2 flex-shrink-0">
+            <button id="btn-ledger-prev" class="btn-secondary py-1.5 px-4 text-xs min-w-[80px] disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+            <button id="btn-ledger-next" class="btn-secondary py-1.5 px-4 text-xs min-w-[80px] disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Ledger Floating Island -->
+    <div id="ledger-island" class="hidden fixed z-40" style="right: 0.5rem; top: 30vh; opacity: 0; transform: translateX(1rem); transition: opacity 0.25s ease-out, transform 0.25s ease-out; max-height: calc(100vh - 4rem); overflow-y: auto;">
+      <div class="glass-card rounded-2xl p-4 w-48 shadow-2xl shadow-black/50 border border-zinc-700/20 space-y-3">
+
+        <!-- Compact header: word count -->
+        <div class="text-center pb-2.5 border-b border-zinc-800/40">
+          <div id="island-word-count" class="text-xl font-black text-zinc-100 font-mono tracking-tight">0</div>
+          <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">words</div>
+        </div>
+
+        <!-- Proficiency Legend -->
+        <div class="pb-2.5 border-b border-zinc-800/40">
+          <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-1.5">Proficiency</div>
+          <div class="space-y-1">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span class="text-[10px] text-zinc-300">Mastered</span>
+              <span class="text-[9px] text-zinc-500 ml-auto">done</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
+              <span class="text-[10px] text-zinc-300">Reviewing</span>
+              <span class="text-[9px] text-zinc-500 ml-auto">practicing</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-sky-400 flex-shrink-0"></span>
+              <span class="text-[10px] text-zinc-300">Learning</span>
+              <span class="text-[9px] text-zinc-500 ml-auto">acquiring</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-zinc-500 flex-shrink-0"></span>
+              <span class="text-[10px] text-zinc-300">Unlearned</span>
+              <span class="text-[9px] text-zinc-500 ml-auto">untouched</span>
+            </div>
+          </div>
+          <p class="text-[9px] text-zinc-600 mt-1.5 leading-tight">System-derived from SRS.<br>Press <code class="text-zinc-500">`</code> in session to override.</p>
+        </div>
+
+        <!-- Search -->
+        <div class="relative">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" id="island-search" placeholder="Filter words..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-7 pr-3 py-1.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500/40 text-zinc-200 placeholder-zinc-600 transition-colors" />
+        </div>
+
+        <!-- Level filter -->
+        <div class="relative">
+          <select id="island-status-filter" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-2.5 pr-2 py-1.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-brand-500 text-zinc-300 appearance-none cursor-pointer">
+            <option value="all">All levels</option>
+            <option value="mastered">✦ Mastered</option>
+            <option value="reviewing">◉ Reviewing</option>
+            <option value="learning">◉ Learning</option>
+            <option value="unlearned">○ Unlearned</option>
+          </select>
+          <svg class="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+
+        <!-- Per-page -->
+        <div class="relative">
+          <select id="island-limit-select" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-2.5 pr-2 py-1.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-brand-500 text-zinc-300 appearance-none cursor-pointer">
+            <option value="15">15 / page</option>
+            <option value="30">30 / page</option>
+            <option value="50">50 / page</option>
+            <option value="100">100 / page</option>
+            <option value="0">All</option>
+          </select>
+          <svg class="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+
+        <!-- Pagination -->
+        <div class="border-t border-zinc-800/40 pt-2.5">
+          <div class="flex items-center gap-1">
+            <button id="island-prev" class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 disabled:opacity-25 disabled:cursor-not-allowed transition-colors" title="Previous">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="flex-1 text-center">
+              <span id="island-page-info" class="text-[10px] font-mono text-zinc-400">1/1</span>
+            </div>
+            <button id="island-next" class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 disabled:opacity-25 disabled:cursor-not-allowed transition-colors" title="Next">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-zinc-900 bg-zinc-950/20 py-6 mt-12 text-center text-xs text-zinc-600 font-medium">
+    <div class="max-w-7xl mx-auto px-4 flex items-center justify-center gap-4">
+      <p>© 2026 English Vocab Gym. Standard dictation training suite for vocabulary building.</p>
+
+    </div>
+  </footer>
+
+  <!-- DECOUPLED APPLICATION CORE ENGINE (Option A Sequencing) -->
+  <!-- SheetJS CDN Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
+  <!-- Sequenced App Scripts -->
+  <script src="js/dictionary.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/session-core.js"></script>
+  <script src="js/vocab-gym.js"></script>
+  <script src="js/speech.js"></script>
+  <script src="js/exchange-data.js"></script>
+  <script src="js/root-data.js"></script>
+  <script src="js/root-word-data.js"></script>
+  <script src="js/synonym-antonym-data.js"></script>
+  <script src="js/ui-dashboard.js"></script>
+  <script src="js/ui-dictation.js"></script>
+  <script src="js/ui-multiple-choice.js"></script>
+  <script src="js/ui-ledger.js"></script>
+  <script src="js/ui-search.js"></script>
+  <script src="js/ui-wordcard.js"></script>
+  <script src="js/ui-profiles.js"></script>
+  <script src="js/srs.js"></script>
+  <script src="js/sw-register.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/sentences.js"></script>
+  <script src="js/ielts-vocab-data.js"></script>
+
+  <!-- Share Modal -->
+  <div id="share-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+    <div class="glass-card p-8 rounded-2xl max-w-lg w-full space-y-6 relative">
+      <button id="btn-close-share-modal" class="absolute top-4 right-4 text-zinc-500 hover:text-zinc-300">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 class="text-2xl font-bold text-zinc-100 text-center mb-6" id="share-modal-title"></h3>
+
+      <div id="share-export-section" class="space-y-4 hidden">
+        <p class="text-zinc-400 text-sm">Copy the encoded text below to share your progress.</p>
+        <textarea id="exported-data-textarea" readonly rows="4" class="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-200 font-mono text-sm"></textarea>
+        <button id="btn-copy-exported-data" class="btn-primary w-full py-2.5 text-sm">Copy to Clipboard</button>
+      </div>
+
+      <div id="share-import-section" class="space-y-4 hidden">
+        <p class="text-zinc-400 text-sm">Paste encoded progress data below to import.</p>
+        <textarea id="import-data-textarea" rows="4" placeholder="Paste shared data here..." class="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-200 font-mono text-sm"></textarea>
+        <button id="btn-import-data" class="btn-primary w-full py-2.5 text-sm">Import Progress</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div id="upload-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+    <div class="glass-card rounded-2xl p-6 max-w-md w-full space-y-4 relative">
+      <button id="btn-close-upload-modal" class="absolute top-4 right-4 text-zinc-500 hover:text-zinc-200 transition-colors">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <h3 class="text-lg font-bold text-zinc-100">Import Word Lists</h3>
+
+      <div id="upload-dropzone" class="border border-dashed border-zinc-700 hover:border-brand-500/50 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-zinc-900/50 group">
+        <input type="file" id="excel-file-input" accept=".txt,.csv,.xlsx,.xls" multiple class="hidden" />
+        <div class="flex flex-col items-center justify-center space-y-3 pointer-events-none">
+          <div class="p-3 bg-zinc-800/80 rounded-xl text-zinc-400 group-hover:text-brand-400 group-hover:scale-105 transition-all duration-300">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-zinc-200 group-hover:text-brand-400 transition-colors">Drop word list files here</p>
+            <p class="text-xs text-zinc-500 mt-0.5">or click to browse &middot; .txt / .csv / .xlsx / .xls</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Manage Modal -->
+  <div id="profile-manage-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+    <div class="glass-card rounded-2xl p-6 max-w-md w-full space-y-4 relative">
+      <button id="btn-profile-close-manage" class="absolute top-4 right-4 text-zinc-500 hover:text-zinc-200 transition-colors">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <h3 class="text-lg font-bold text-zinc-100">Manage Profiles</h3>
+      <p id="profile-manage-current" class="text-xs text-zinc-500"></p>
+
+      <!-- Rename -->
+      <div>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Rename Current Profile</span>
+        <button id="btn-profile-rename" class="mt-1.5 w-full text-xs font-semibold py-2 rounded-lg border border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-200 transition-all">Rename</button>
+      </div>
+
+      <!-- Export / Import -->
+      <div>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Transfer Progress</span>
+        <div class="grid grid-cols-2 gap-2 mt-1.5">
+          <button id="btn-profile-export" class="text-xs font-semibold py-2 rounded-lg border border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-200 transition-all">Export</button>
+          <button id="btn-profile-import" class="text-xs font-semibold py-2 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 transition-all">Import</button>
+        </div>
+      </div>
+
+      <!-- Merge -->
+      <div>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Merge Profile Into Current</span>
+        <div class="flex items-center gap-2 mt-1.5">
+          <select id="profile-merge-source" class="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-500"></select>
+          <button id="btn-profile-merge" class="text-xs font-semibold py-2 px-4 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all">Merge</button>
+        </div>
+      </div>
+
+      <!-- Delete -->
+      <div>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Delete Profile</span>
+        <div class="flex items-center gap-2 mt-1.5">
+          <select id="profile-delete-select" class="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-500"></select>
+          <button id="btn-profile-delete" class="text-xs font-semibold py-2 px-4 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Word Card Overlay -->
+  <div id="wordcard-overlay" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-[60] animate-fade-in">
+    <div id="wordcard-panel" class="glass-card rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col shadow-2xl shadow-black/60">
+      <!-- Header -->
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-zinc-800/50 flex-shrink-0 bg-zinc-950/90 backdrop-blur-sm rounded-t-2xl">
+        <span class="text-xs font-semibold text-zinc-400">Word Card</span>
+        <span class="flex-1"></span>
+        <span class="text-[10px] text-zinc-600 font-mono">Esc to close</span>
+        <button id="btn-wordcard-close" class="text-zinc-500 hover:text-zinc-200 p-1 transition-colors" title="Close (Escape)">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Scrollable Content -->
+      <div id="wordcard-content" class="flex-1 overflow-y-auto p-5 space-y-5"></div>
+    </div>
+  </div>
+
+</body>
+</html>
