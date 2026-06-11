@@ -2,6 +2,8 @@
 
 **A vanilla JS single-page vocabulary trainer** — dictation, multiple choice, hard mode letter-by-letter. No build step, no server, no frameworks. Open `index.html` and start.
 
+OR see https://quicksilver-jacob.github.io/vocabGymV2/ for online usage.
+
 ## Features
 
 ### Practice Modes
