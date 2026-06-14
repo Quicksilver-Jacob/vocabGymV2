@@ -427,6 +427,56 @@ ns.state = {
   ledgerLimit: 15,
   filteredLedgerIds: [],
 
+  // ── Daily goal & streak ──
+  _dailyGoal: null,
+
+  getDailyGoal: function() {
+    if (this._dailyGoal !== null) return this._dailyGoal;
+    try {
+      var saved = parseInt(localStorage.getItem('english_vocab_gym_daily_goal'));
+      this._dailyGoal = (saved && saved > 0) ? saved : 20;
+    } catch (_) { this._dailyGoal = 20; }
+    return this._dailyGoal;
+  },
+
+  setDailyGoal: function(count) {
+    this._dailyGoal = count;
+    try { localStorage.setItem('english_vocab_gym_daily_goal', String(count)); } catch (_) {}
+  },
+
+  getTodayStats: function() {
+    var today = new Date().toISOString().split('T')[0];
+    return ns.db.getDailyStatsSync(today);
+  },
+
+  getStreakAsync: function() {
+    var pid = ns.db.getCurrentProfileIdSync();
+    if (!pid) return Promise.resolve({ streak: 0, todayComplete: false });
+    var goal = this.getDailyGoal();
+    return ns.db.getAllDailyStats(pid).then(function(rows) {
+      var dateMap = {};
+      rows.forEach(function(r) { dateMap[r.date] = r.wordsPracticed; });
+      var today = new Date();
+      var streak = 0;
+      var todayComplete = false;
+      for (var i = 0; i < 365; i++) {
+        var d = new Date(today);
+        d.setDate(d.getDate() - i);
+        var dateStr = d.toISOString().split('T')[0];
+        var practiced = dateMap[dateStr] || 0;
+        if (i === 0) {
+          todayComplete = practiced >= goal;
+          if (practiced >= goal) streak = 1;
+          else break;
+        } else {
+          if (practiced >= goal) streak++;
+          else break;
+        }
+      }
+      return { streak: streak, todayComplete: todayComplete };
+    });
+  },
+
   // Get word progress (sync, from in-memory cache). When a session is active,
   // merges buffered deltas (correct/wrong/manualProficiency) on top of global data.
   getWordProgress: function(wordId) {
@@ -680,6 +730,226 @@ ns.state = {
   refreshAfterProfileSwitch: function() {
     // Caches are already reloaded by ns.db.setCurrentProfileId()
     // This is a hook for UI modules to re-render
+  }
+};
+
+// ── Centralized keyboard shortcut registry ──
+ns.keybindings = {
+  _bindings: [],
+  _customMap: null,
+  _isCapturing: false,
+  _captureCallback: null,
+
+  _loadCustom: function() {
+    if (this._customMap !== null) return;
+    try {
+      this._customMap = JSON.parse(localStorage.getItem('english_vocab_gym_keybindings') || '{}');
+    } catch (_) { this._customMap = {}; }
+  },
+
+  register: function(id, group, defaultKey, description, handler) {
+    this._loadCustom();
+    this._bindings.push({
+      id: id,
+      group: group,
+      defaultKey: defaultKey,
+      description: description,
+      handler: handler
+    });
+  },
+
+  getEffectiveKey: function(id) {
+    this._loadCustom();
+    return this._customMap[id] || null;
+  },
+
+  // Get the display key string for a binding (custom if set, otherwise default)
+  getDisplayKey: function(id) {
+    this._loadCustom();
+    if (this._customMap[id]) return this._customMap[id];
+    for (var i = 0; i < this._bindings.length; i++) {
+      if (this._bindings[i].id === id) return this._bindings[i].defaultKey;
+    }
+    return '';
+  },
+
+  // Render a binding's effective key as a <kbd> HTML string
+  renderKbd: function(id) {
+    var key = this.getDisplayKey(id);
+    if (!key) return '';
+    return '<kbd class="bg-zinc-800 border border-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded font-mono font-bold text-[10px]">' + key + '</kbd>';
+  },
+
+  // Check if a keyboard event matches the effective key for a binding ID
+  matchesBinding: function(e, bindingId) {
+    this._loadCustom();
+    // Find the binding to get the default key
+    var defaultKey = null;
+    for (var i = 0; i < this._bindings.length; i++) {
+      if (this._bindings[i].id === bindingId) {
+        defaultKey = this._bindings[i].defaultKey;
+        break;
+      }
+    }
+    if (!defaultKey) return false;
+    var effectiveKey = this._customMap[bindingId] || defaultKey;
+    var parsed = this._parseKeyString(effectiveKey);
+    if (!parsed) return false;
+    var eKey = e.key;
+    if (parsed.key === 'Space' && eKey === ' ') eKey = 'Space';
+    if (parsed.key.length === 1 && eKey.length === 1) eKey = eKey.toUpperCase();
+    var keyIsSymbol = parsed.key.length === 1 && !/[a-zA-Z0-9]/.test(parsed.key);
+    return eKey === parsed.key &&
+        (!!e.ctrlKey || !!e.metaKey) === parsed.ctrlKey &&
+        (keyIsSymbol || !!e.shiftKey === parsed.shiftKey) &&
+        !!e.altKey === parsed.altKey;
+  },
+
+  getAllBindings: function() {
+    this._loadCustom();
+    var self = this;
+    return this._bindings.map(function(b) {
+      return {
+        id: b.id,
+        group: b.group,
+        key: self._customMap[b.id] || b.defaultKey,
+        defaultKey: b.defaultKey,
+        description: b.description,
+        isCustom: !!self._customMap[b.id]
+      };
+    });
+  },
+
+  setCustomKey: function(id, newKey) {
+    this._loadCustom();
+    if (newKey === null || newKey === undefined) {
+      delete this._customMap[id];
+    } else {
+      this._customMap[id] = newKey;
+    }
+    try {
+      localStorage.setItem('english_vocab_gym_keybindings', JSON.stringify(this._customMap));
+    } catch (_) {}
+  },
+
+  resetBinding: function(id) {
+    this.setCustomKey(id, null);
+  },
+
+  resetAll: function() {
+    this._customMap = {};
+    try { localStorage.removeItem('english_vocab_gym_keybindings'); } catch (_) {}
+  },
+
+  _parseKeyString: function(keyStr) {
+    if (!keyStr) return null;
+    var parts = keyStr.split('+');
+    var result = { key: '', ctrlKey: false, shiftKey: false, altKey: false };
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim().toLowerCase();
+      if (p === 'ctrl') result.ctrlKey = true;
+      else if (p === 'shift') result.shiftKey = true;
+      else if (p === 'alt') result.altKey = true;
+      else if (p === 'meta') result.ctrlKey = true; // Meta maps to Ctrl for consistency
+      else result.key = parts[i].trim();
+    }
+    return result;
+  },
+
+  handleKeydown: function(e) {
+    this._loadCustom();
+    for (var i = 0; i < this._bindings.length; i++) {
+      var b = this._bindings[i];
+      var effectiveKey = this._customMap[b.id] || b.defaultKey;
+      var parsed = this._parseKeyString(effectiveKey);
+      if (!parsed) continue;
+      var eKey = e.key;
+      // Normalize Space for matching
+      if (parsed.key === 'Space' && eKey === ' ') eKey = 'Space';
+      // Normalize single-character keys (browser reports lowercase, bindings store uppercase)
+      if (parsed.key.length === 1 && eKey.length === 1) eKey = eKey.toUpperCase();
+      // Symbol keys (non-letter, non-digit) may need Shift on US keyboards (e.g. '?')
+      var keyIsSymbol = parsed.key.length === 1 && !/[a-zA-Z0-9]/.test(parsed.key);
+      if (eKey === parsed.key &&
+          (!!e.ctrlKey || !!e.metaKey) === parsed.ctrlKey &&
+          (keyIsSymbol || !!e.shiftKey === parsed.shiftKey) &&
+          !!e.altKey === parsed.altKey) {
+        if (b.handler) {
+          e.preventDefault();
+          e.stopPropagation();
+          b.handler(e);
+          return true;
+        }
+      }
+    }
+    return false;
+  },
+
+  startCapture: function(callback) {
+    this._isCapturing = true;
+    this._captureCallback = callback;
+  },
+
+  cancelCapture: function() {
+    this._isCapturing = false;
+    this._captureCallback = null;
+  },
+
+  _RESTRICTED: ['Escape','Tab','CapsLock','Control','Shift','Alt','Meta','Win','Fn','Symbol','ContextMenu','Unidentified','NumLock','ScrollLock','Pause'],
+
+  _handleCapture: function(e) {
+    if (!this._isCapturing) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    var key = e.key;
+    if (key === ' ') key = 'Space';
+    if (key === 'Dead') return false;
+    if (this._RESTRICTED.indexOf(key) !== -1) {
+      this._isCapturing = false;
+      if (this._captureCallback) {
+        var cb = this._captureCallback;
+        this._captureCallback = null;
+        cb(null);
+      }
+      return true;
+    }
+    var parts = [];
+    if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.altKey) parts.push('Alt');
+    if (key.length === 1) key = key.toUpperCase();
+    parts.push(key);
+    var keyStr = parts.join('+');
+    this._isCapturing = false;
+    if (this._captureCallback) {
+      var cb = this._captureCallback;
+      this._captureCallback = null;
+      cb(keyStr);
+    }
+    return true;
+  },
+
+  getConflicts: function(excludeId, keyStr) {
+    this._loadCustom();
+    var conflicts = [];
+    var all = this.getAllBindings();
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].id === excludeId) continue;
+      if (all[i].key === keyStr) conflicts.push(all[i]);
+    }
+    return conflicts;
+  },
+
+  getGroupColor: function(group) {
+    var colors = {
+      session: { bg: 'bg-cyan-500/20', border: 'border-cyan-500/40', text: 'text-cyan-400', label: 'During Session' },
+      audio: { bg: 'bg-green-500/20', border: 'border-green-500/40', text: 'text-green-400', label: 'Audio Controls' },
+      navigation: { bg: 'bg-blue-500/20', border: 'border-blue-500/40', text: 'text-blue-400', label: 'Navigation' },
+      proficiency: { bg: 'bg-amber-500/20', border: 'border-amber-500/40', text: 'text-amber-400', label: 'Proficiency' },
+      answer: { bg: 'bg-rose-500/20', border: 'border-rose-500/40', text: 'text-rose-400', label: 'Answer Selection' },
+      system: { bg: 'bg-violet-500/20', border: 'border-violet-500/40', text: 'text-violet-400', label: 'System' }
+    };
+    return colors[group] || colors.system;
   }
 };
 

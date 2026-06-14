@@ -70,12 +70,71 @@ ns.sessionCore = {
     return _activeModeName === 'multipleChoice' ? 'audio' : 'standard';
   },
 
+  // Update session keyboard hints bar to match current mode
+  updateKeyboardHints: function() {
+    var el = document.getElementById('session-keyboard-hints');
+    if (!el) return;
+    var mode = _activeModeName || 'dictation';
+    var submode = this.getSubMode();
+    var kb = ns.keybindings;
+    var hints = [];
+
+    // hint: { ids: [bindingId, ...] }  or  { rawKeys: 'key', desc: '...' }
+
+    if (mode === 'mixed' && ns.mixedMode && ns.mixedMode.getKeyboardHints) {
+      hints = ns.mixedMode.getKeyboardHints();
+    } else if (mode === 'multipleChoice') {
+      hints.push({ ids: ['mc_option_1', 'mc_option_2', 'mc_option_3', 'mc_option_4'], desc: 'Select option' });
+      hints.push({ ids: ['submit_answer'], desc: 'Advance' });
+    } else if (submode === 'hard') {
+      hints.push({ rawKeys: 'A-Z', desc: 'Type letter' });
+      hints.push({ rawKeys: 'Backspace', desc: 'Delete' });
+      hints.push({ ids: ['submit_answer'], desc: 'Submit' });
+    } else {
+      hints.push({ ids: ['submit_answer'], desc: 'Submit answer' });
+    }
+
+    if (mode !== 'mixed') {
+      hints.push({ ids: ['cycle_proficiency'], desc: 'Cycle proficiency' });
+      hints.push({ ids: ['word_audio'], desc: 'Replay audio' });
+      if (mode === 'dictation') {
+        hints.push({ ids: ['sentence_audio'], desc: 'Play sentence' });
+      }
+      hints.push({ rawKeys: 'Esc', desc: 'Quit' });
+    }
+
+    var html = '';
+    for (var i = 0; i < hints.length; i++) {
+      var h = hints[i];
+      var keysHtml = '';
+      if (h.ids) {
+        for (var j = 0; j < h.ids.length; j++) {
+          if (j > 0) keysHtml += '<span class="text-zinc-600 mx-0.5">·</span>';
+          keysHtml += kb.renderKbd(h.ids[j]);
+        }
+      } else if (h.rawKeys) {
+        var keys = h.rawKeys.split(' ');
+        for (var k = 0; k < keys.length; k++) {
+          if (k > 0) keysHtml += '<span class="text-zinc-600 mx-0.5">·</span>';
+          keysHtml += '<kbd class="inline-flex items-center bg-zinc-800 border border-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded font-mono font-bold text-[10px] leading-none">' + keys[k] + '</kbd>';
+        }
+      }
+      html += '<div class="flex flex-col items-center gap-0.5">' +
+        '<div class="flex items-center">' + keysHtml + '</div>' +
+        '<span class="text-[9px] text-zinc-500 leading-none">' + h.desc + '</span>' +
+      '</div>';
+    }
+
+    el.innerHTML = html;
+  },
+
   // ── Session lifecycle ──
 
   buildQueue: function() {
-    var filterVal = document.querySelector('input[name="session-filter"]:checked').value;
-    var limitInput = document.getElementById('session-timer').value;
-    _timerSecs = limitInput ? parseInt(limitInput) : 0;
+    var filterEl = document.querySelector('input[name="session-filter"]:checked');
+    var filterVal = filterEl ? filterEl.value : 'all';
+    var limitInput = document.getElementById('session-timer');
+    _timerSecs = limitInput && limitInput.value ? parseInt(limitInput.value) : 0;
 
     var pool = ns.state.activeWordIds.slice();
 
@@ -102,7 +161,8 @@ ns.sessionCore = {
       return [];
     }
 
-    var sizeInput = document.getElementById('session-size').value.trim();
+    var sizeInputEl = document.getElementById('session-size');
+    var sizeInput = sizeInputEl ? sizeInputEl.value.trim() : '';
     var sessionSize = sizeInput ? parseInt(sizeInput) : pool.length;
     if (isNaN(sessionSize) || sessionSize <= 0) sessionSize = pool.length;
 
@@ -216,6 +276,8 @@ startSession: function(optQueue) {
     document.getElementById('dashboard-view').classList.add('hidden');
     document.getElementById('results-view').classList.add('hidden');
     document.getElementById('word-ledger-container').classList.add('hidden');
+    document.getElementById('dashboard-tabs').classList.add('hidden');
+    document.getElementById('stats-view').classList.add('hidden');
     document.getElementById('dictation-view').classList.remove('hidden');
 
     document.getElementById('total-session-words').textContent = _queue.length;
@@ -226,6 +288,8 @@ startSession: function(optQueue) {
     }
 
     if (ns.dictation && ns.dictation._applyLayout) ns.dictation._applyLayout();
+
+    this.updateKeyboardHints();
 
     this.loadWord();
   },
@@ -254,12 +318,6 @@ startSession: function(optQueue) {
     if (prog.manualProficiency) ns.state._sessionManualProf = prog.manualProficiency;
     ns.state._sessionDerivedProf = ns.state._sessionManualProf || ns.state._sessionSystemProf;
 
-    // Reset shared UI (elements may be mode-specific, check existence)
-    var revealDrawer = document.getElementById('reveal-drawer');
-    if (revealDrawer) revealDrawer.classList.add('invisible', 'opacity-0');
-    var mcDrawer = document.getElementById('mc-reveal-drawer');
-    if (mcDrawer) mcDrawer.classList.add('invisible', 'opacity-0');
-
     this.updateProgressBar();
     this.updateNavButtons();
 
@@ -268,23 +326,6 @@ startSession: function(optQueue) {
     if (flipper) {
       flipper.style.transform = '';
       flipper.classList.remove('flipped');
-    }
-
-    // Update proficiency indicator (dictation mode only)
-    // Use session-scoped proficiency to show the authoritative session view
-    if (ns.dictation && ns.dictation.updateProficiencyBadge) {
-      var prof = ns.state._sessionDerivedProf || ns.state.getProficiency(wordId);
-      var isManual = !!ns.state._sessionManualProf;
-      ns.dictation.updateProficiencyBadge(prof, isManual);
-    }
-
-    // Sentence hint (dictation mode only)
-    var sentenceHint = document.getElementById('sentence-hint');
-    if (sentenceHint) {
-      var hasSentence = typeof SENTENCE_DATA !== 'undefined' &&
-                        SENTENCE_DATA[wordId] &&
-                        SENTENCE_DATA[wordId].length > 0;
-      sentenceHint.classList.toggle('hidden', !hasSentence);
     }
 
     // Delegate to active mode
@@ -307,6 +348,16 @@ startSession: function(optQueue) {
 
   _playActiveWordAudio: function(onEnd) {
     if (_index >= _queue.length) return;
+
+    // Only auto-play audio for modes/types that need it
+    if (_activeModeName === 'mixed' && ns.mixedMode && ns.mixedMode._activeType) {
+      var typeId = ns.mixedMode._activeType.id;
+      if (typeId !== 'spelling' && typeId !== 'mc_audio') {
+        if (typeof onEnd === 'function') onEnd();
+        return;
+      }
+    }
+
     var wordId = _queue[_index];
     var wordData = ns.centralDictionary.getById(wordId);
     if (wordData) {
@@ -323,19 +374,21 @@ startSession: function(optQueue) {
   handleInputKeydowns: function(e) {
     if (!_sessionActive) return;
 
-    if (_isReviewing && e.key === 'Enter') {
+    var kb = ns.keybindings;
+
+    if (_isReviewing && kb.matchesBinding(e, 'submit_answer')) {
       e.preventDefault();
       _advanceFromReview();
       return;
     }
 
-    if (_isReviewing && e.key === 'ArrowLeft') {
+    if (_isReviewing && kb.matchesBinding(e, 'prev_word')) {
       e.preventDefault();
       this.goToPrevWord();
       return;
     }
 
-    if (_isReviewing && e.key === 'ArrowRight') {
+    if (_isReviewing && kb.matchesBinding(e, 'next_word')) {
       e.preventDefault();
       this.goToNextWord();
       return;
@@ -403,13 +456,12 @@ startSession: function(optQueue) {
     var systemProf = ns.state._sessionSystemProf || 'unlearned';
     var manualProf = ns.state._sessionManualProf;
 
-    // Demote session-derived proficiency if user hasn't manually overridden
+    // Demote proficiency, but first interaction always moves unlearned→learning
     if (!manualProf) {
       var profLevels = ['unlearned', 'learning', 'reviewing', 'mastered'];
       var idx = profLevels.indexOf(ns.state._sessionDerivedProf || 'unlearned');
       if (idx > 1) { ns.state._sessionDerivedProf = profLevels[idx - 1]; }
-      else if (idx === 1) { ns.state._sessionDerivedProf = 'learning'; }
-      // idx === 0 (unlearned): no demotion possible, leave at unlearned
+      else { ns.state._sessionDerivedProf = 'learning'; }
     }
 
     ns.state.addToSessionBuffer(wordId, { wrong: 1 });
@@ -445,13 +497,12 @@ startSession: function(optQueue) {
     var systemProf = ns.state._sessionSystemProf || 'unlearned';
     var manualProf = ns.state._sessionManualProf;
 
-    // Demote session-derived proficiency if user hasn't manually overridden
+    // Demote proficiency, but first interaction always moves unlearned→learning
     if (!manualProf) {
       var profLevels = ['unlearned', 'learning', 'reviewing', 'mastered'];
       var idx = profLevels.indexOf(ns.state._sessionDerivedProf || 'unlearned');
       if (idx > 1) { ns.state._sessionDerivedProf = profLevels[idx - 1]; }
-      else if (idx === 1) { ns.state._sessionDerivedProf = 'learning'; }
-      // idx === 0 (unlearned): no demotion possible, leave at unlearned
+      else { ns.state._sessionDerivedProf = 'learning'; }
     }
 
     ns.state.addToSessionBuffer(wordId, { wrong: 1 });
@@ -522,6 +573,7 @@ startSession: function(optQueue) {
     if (!wordData) return;
 
     ns.playSFX('click');
+    ns.state.wrongAnswerAttempted = true;
     _isReviewing = true;
     _reviewWordId = prevWordId;
     this._refreshProfState(prevWordId);
@@ -547,6 +599,7 @@ startSession: function(optQueue) {
     if (!wordData) return;
 
     ns.playSFX('click');
+    ns.state.wrongAnswerAttempted = true;
     _visitedHistory.push(nextWordId);
     _isReviewing = true;
     _reviewWordId = nextWordId;
@@ -585,6 +638,7 @@ startSession: function(optQueue) {
     }
 
     ns.playSFX('click');
+    ns.state.wrongAnswerAttempted = true;
     var wordData = ns.centralDictionary.getById(currentWordId);
     _isReviewing = true;
     _reviewWordId = currentWordId;
@@ -609,35 +663,46 @@ startSession: function(optQueue) {
   updateNavButtons: function() {
     var btnPrev = document.getElementById('btn-prev-word');
     var btnNext = document.getElementById('btn-next-word');
-    var btnJump = document.getElementById('btn-jump-current');
 
     if (btnPrev) {
       var hasHistory = _visitedHistory.length > 1;
       btnPrev.disabled = !hasHistory;
       btnPrev.className = hasHistory
-        ? 'text-xs text-zinc-300 hover:text-zinc-100 flex items-center gap-1 transition-colors cursor-pointer'
-        : 'text-xs text-zinc-700 flex items-center gap-1 transition-colors cursor-not-allowed';
+        ? 'flex-shrink-0 text-xs text-zinc-300 hover:text-zinc-100 flex items-center gap-1 transition-colors cursor-pointer px-2 py-1 rounded-md'
+        : 'flex-shrink-0 text-xs text-zinc-700 flex items-center gap-1 transition-colors cursor-not-allowed px-2 py-1 rounded-md';
     }
     if (btnNext) {
       var hasForward = _forwardHistory.length > 0;
       btnNext.disabled = !hasForward;
       btnNext.className = hasForward
-        ? 'text-xs text-zinc-300 hover:text-zinc-100 flex items-center gap-1 transition-colors cursor-pointer'
-        : 'text-xs text-zinc-700 flex items-center gap-1 transition-colors cursor-not-allowed';
+        ? 'flex-shrink-0 text-xs text-zinc-300 hover:text-zinc-100 flex items-center gap-1 transition-colors cursor-pointer px-2 py-1 rounded-md'
+        : 'flex-shrink-0 text-xs text-zinc-700 flex items-center gap-1 transition-colors cursor-not-allowed px-2 py-1 rounded-md';
     }
-    if (btnJump) {
-      btnJump.classList.toggle('hidden', !_isReviewing);
+  },
+
+  // Shared wordcard rendering (used by both modes on reveal)
+  renderWordCard: function(wordData) {
+    var sc = ns.sessionCore;
+    var cardContainer = document.getElementById('session-wordcard-content');
+    var flipper = document.getElementById('session-wordcard-flipper');
+    if (cardContainer && ns.wordcard && ns.wordcard._renderFullCard) {
+      var reviewId = sc.isReviewing() ? sc.getReviewWordId() : ns.centralDictionary.getWordId(wordData.word);
+      ns.wordcard._renderFullCard(reviewId, cardContainer);
+      var card = cardContainer.querySelector('.space-y-5');
+      if (card) card.classList.replace('space-y-5', 'space-y-3.5');
     }
-    // Update Enter hint
-    var hint = document.getElementById('press-enter-hint');
-    if (hint) {
-      hint.textContent = _isReviewing ? 'Press Enter to continue' : 'Press Enter to advance';
+    if (flipper && !flipper.classList.contains('flipped')) {
+      requestAnimationFrame(function() {
+        flipper.style.transform = 'rotateY(180deg)';
+        flipper.classList.add('flipped');
+      });
     }
   },
 
   updateStreakUI: function() {
     var container = document.getElementById('streak-indicator');
     var count = document.getElementById('streak-count');
+    if (!container || !count) return;
     if (_correctStreak > 0) {
       container.classList.remove('hidden');
       container.classList.add('flex');
@@ -702,10 +767,13 @@ startSession: function(optQueue) {
     _sessionActive = false;
     if (_activeMode && _activeMode.deactivate) _activeMode.deactivate();
     ns.playSFX('correct');
-    document.getElementById('session-progress-bar').style.width = '100%';
+    var progressBar = document.getElementById('session-progress-bar');
+    if (progressBar) progressBar.style.width = '100%';
 
-    document.getElementById('dictation-view').classList.add('hidden');
-    document.getElementById('results-view').classList.remove('hidden');
+    var dv = document.getElementById('dictation-view');
+    if (dv) dv.classList.add('hidden');
+    var rv = document.getElementById('results-view');
+    if (rv) rv.classList.remove('hidden');
 
     var total = _results.length;
     var correctCount = _results.filter(function(r) { return r.correct; }).length;
@@ -733,6 +801,8 @@ startSession: function(optQueue) {
       return self._commitSessionProficiencies(sessionResults);
     }).then(function() {
       return ns.state.commitSessionBuffer();
+    }).then(function() {
+      return self._commitDailyStats(sessionResults);
     }).then(function() {
       self._refreshAllPostSession();
     }).catch(function(err) {
@@ -778,10 +848,24 @@ startSession: function(optQueue) {
   },
 
   _refreshAllPostSession: function() {
-    if (ns.dashboard && ns.dashboard.updateStats) ns.dashboard.updateStats();
-    if (ns.dashboard && ns.dashboard.updateHeaderStats) ns.dashboard.updateHeaderStats();
-    if (ns.ledger && ns.ledger.render) ns.ledger.render();
-    if (ns.srs && ns.srs.renderPanel) ns.srs.renderPanel();
+    try { if (ns.dashboard && ns.dashboard.updateStats) ns.dashboard.updateStats(); } catch (e) { console.error('[Refresh] updateStats:', e); }
+    try { if (ns.dashboard && ns.dashboard.updateHeaderStats) ns.dashboard.updateHeaderStats(); } catch (e) { console.error('[Refresh] updateHeaderStats:', e); }
+    try { if (ns.dashboard && ns.dashboard.updateGoalProgress) ns.dashboard.updateGoalProgress(); } catch (e) { console.error('[Refresh] updateGoalProgress:', e); }
+    try { if (ns.ledger && ns.ledger.render) ns.ledger.render(); } catch (e) { console.error('[Refresh] render ledger:', e); }
+    try { if (ns.srs && ns.srs.renderPanel) ns.srs.renderPanel(); } catch (e) { console.error('[Refresh] renderPanel:', e); }
+  },
+
+  _commitDailyStats: function(results) {
+    var pid = ns.db.getCurrentProfileIdSync();
+    if (!pid || !results || results.length === 0) return Promise.resolve();
+    var today = (new Date()).toISOString().split('T')[0];
+    var correct = results.filter(function(r) { return r.correct; }).length;
+    var wrong = results.filter(function(r) { return !r.correct; }).length;
+    return ns.db.upsertDailyStats(pid, today, {
+      wordsPracticed: results.length,
+      correctCount: correct,
+      wrongCount: wrong
+    });
   },
 
   // Force a specific queue (used by SRS review)
@@ -811,6 +895,8 @@ startSession: function(optQueue) {
       }).then(function() {
         return ns.state.commitSessionBuffer();
       }).then(function() {
+        return self._commitDailyStats(sessionResults);
+      }).then(function() {
         self.exitToDashboard();
       }).catch(function(err) {
         console.error('[Session] Quit commit failed:', err);
@@ -818,6 +904,8 @@ startSession: function(optQueue) {
       });
     } else {
       ns.state.commitSessionBuffer().then(function() {
+        return self._commitDailyStats(_results);
+      }).then(function() {
         self.exitToDashboard();
       }).catch(function(err) {
         console.error('[Session] Quit commit failed:', err);
@@ -833,6 +921,7 @@ startSession: function(optQueue) {
     document.getElementById('results-view').classList.add('hidden');
     document.getElementById('dashboard-view').classList.remove('hidden');
     document.getElementById('word-ledger-container').classList.remove('hidden');
+    document.getElementById('dashboard-tabs').classList.remove('hidden');
     this._refreshAllPostSession();
   },
 
@@ -877,6 +966,7 @@ startSession: function(optQueue) {
               '<span>' + wordEscaped + '</span>' +
               '<span class="text-[10px] font-mono text-zinc-500">(' + ((r.elapsed / 1000)).toFixed(1) + 's)</span>' +
             '</h4>' +
+            (!r.correct && r.userInput ? '<p class="text-xs text-rose-400 mt-1 font-mono line-through decoration-rose-500/50">' + self.escapeHtml(r.userInput) + '</p>' : '') +
             (defEscaped ? '<p class="text-xs text-zinc-400 mt-1.5 leading-relaxed whitespace-pre-line line-clamp-3" title="' + defEscaped + '">' + defEscaped + '</p>' : '') +
             '<div class="flex gap-2 mt-2">' +
               '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ' + _profBadgeClass(initialProf) + '">Before: ' + _profLabel(initialProf) + '</span>' +
@@ -1014,7 +1104,9 @@ ns.sessionCore.resetWordProficiency = function() {
 
 ns.sessionCore._updateActiveModeProfBadge = function(prof, isManual) {
   var modeName = _activeModeName;
-  if (modeName === 'multipleChoice' && ns.multipleChoice && ns.multipleChoice._updateProfBadge) {
+  if (modeName === 'mixed' && ns.mixedMode && ns.mixedMode.updateProficiencyBadge) {
+    ns.mixedMode.updateProficiencyBadge(prof, isManual);
+  } else if (modeName === 'multipleChoice' && ns.multipleChoice && ns.multipleChoice._updateProfBadge) {
     ns.multipleChoice._updateProfBadge();
   } else if (ns.dictation && ns.dictation.updateProficiencyBadge) {
     ns.dictation.updateProficiencyBadge(prof, isManual);

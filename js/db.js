@@ -3,12 +3,13 @@ window.VocabGym = window.VocabGym || {};
 (function(ns) {
 
 const DB_NAME = 'VocabGymDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_PROFILES = 'profiles';
 const STORE_PROGRESS = 'wordProgress';
 const STORE_LISTS = 'lists';
 const STORE_SETTINGS = 'settings';
 const STORE_SRS = 'srsData';
+const STORE_DAILY_STATS = 'dailyStats';
 
 var _db = null;
 var _currentProfileId = null;
@@ -17,6 +18,7 @@ var _srsCache = {};         // { wordId: {interval, easeFactor, repetitions, nex
 var _listCache = {};        // { listName: {name, wordIds, createdAt} }
 var _listNamesCache = [];   // [listName, ...]
 var _selectedListsCache = []; // [listName, ...] — per-profile selected book lists
+var _dailyStatsCache = {};  // { 'YYYY-MM-DD': {wordsPracticed, correctCount, wrongCount} }
 
 // ── Database open/upgrade ──
 
@@ -42,6 +44,12 @@ function openDB() {
         var srs = db.createObjectStore(STORE_SRS, { keyPath: ['profileId', 'wordId'] });
         srs.createIndex('profileId', 'profileId', { unique: false });
         srs.createIndex('nextReview', 'nextReview', { unique: false });
+      }
+      if (e.oldVersion < 2) {
+        if (!db.objectStoreNames.contains(STORE_DAILY_STATS)) {
+          var dailyStats = db.createObjectStore(STORE_DAILY_STATS, { keyPath: ['profileId', 'date'] });
+          dailyStats.createIndex('profileId', 'profileId', { unique: false });
+        }
       }
     };
     req.onsuccess = function(e) { _db = e.target.result; resolve(_db); };
@@ -76,7 +84,7 @@ ns.db = {
     return openDB().then(function() {
       return self._loadCurrentProfileId();
     }).then(function() {
-      return Promise.all([self._loadProgressCache(), self._loadListCache(_currentProfileId), self._loadSelectedListsCache(), self._loadSRSCache()]);
+      return Promise.all([self._loadProgressCache(), self._loadListCache(_currentProfileId), self._loadSelectedListsCache(), self._loadSRSCache(), self._loadDailyStatsCache()]);
     });
   },
 
@@ -266,6 +274,60 @@ ns.db = {
 
   setSRSCacheSync: function(wordId, srsData) {
     _srsCache[wordId] = srsData;
+  },
+
+  // ── Daily Stats ──
+
+  _loadDailyStatsCache: function() {
+    var self = this;
+    _dailyStatsCache = {};
+    if (!_currentProfileId) return Promise.resolve();
+    return self._getAllInStore(STORE_DAILY_STATS, _currentProfileId).then(function(rows) {
+      rows.forEach(function(r) {
+        _dailyStatsCache[r.date] = {
+          wordsPracticed: r.wordsPracticed,
+          correctCount: r.correctCount,
+          wrongCount: r.wrongCount
+        };
+      });
+    });
+  },
+
+  getDailyStatsSync: function(date) {
+    return _dailyStatsCache[date] || { wordsPracticed: 0, correctCount: 0, wrongCount: 0 };
+  },
+
+  upsertDailyStats: function(profileId, date, delta) {
+    var store = txn(STORE_DAILY_STATS, 'readwrite');
+    return promiseReq(store.get([profileId, date])).then(function(row) {
+      var entry = row || { profileId: profileId, date: date, wordsPracticed: 0, correctCount: 0, wrongCount: 0 };
+      entry.wordsPracticed += (delta.wordsPracticed || 0);
+      entry.correctCount += (delta.correctCount || 0);
+      entry.wrongCount += (delta.wrongCount || 0);
+      return promiseReq(store.put(entry)).then(function() {
+        if (profileId === _currentProfileId) {
+          _dailyStatsCache[date] = {
+            wordsPracticed: entry.wordsPracticed,
+            correctCount: entry.correctCount,
+            wrongCount: entry.wrongCount
+          };
+        }
+      });
+    });
+  },
+
+  getAllDailyStats: function(profileId) {
+    return this._getAllInStore(STORE_DAILY_STATS, profileId).then(function(rows) {
+      return rows.sort(function(a, b) { return a.date.localeCompare(b.date); });
+    });
+  },
+
+  getDailyStatsRange: function(profileId, startDate, endDate) {
+    return this._getAllInStore(STORE_DAILY_STATS, profileId).then(function(rows) {
+      return rows.filter(function(r) {
+        return r.date >= startDate && r.date <= endDate;
+      }).sort(function(a, b) { return a.date.localeCompare(b.date); });
+    });
   },
 
   _loadSRSCache: function() {
@@ -577,7 +639,7 @@ ns.db = {
   setCurrentProfileId: function(profileId) {
     _currentProfileId = profileId;
     try { localStorage.setItem('english_vocab_gym_current_profile', String(profileId)); } catch (_) {}
-    return Promise.all([this._loadProgressCache(), this._loadSRSCache(), this._loadListCache(profileId), this._loadSelectedListsCache()]);
+    return Promise.all([this._loadProgressCache(), this._loadSRSCache(), this._loadListCache(profileId), this._loadSelectedListsCache(), this._loadDailyStatsCache()]);
   },
 
   _loadCurrentProfileId: function() {

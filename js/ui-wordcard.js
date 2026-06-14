@@ -11,12 +11,33 @@ ns.wordcard = {
   },
 
   bindEvents() {
+    var self = this;
     document.getElementById('btn-wordcard-close').addEventListener('click', () => this.close());
 
     document.getElementById('wordcard-overlay').addEventListener('mousedown', (e) => {
       if (e.target === e.currentTarget) this.close();
     });
 
+    // Escape closes collocation popup first, then card
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      if (document.getElementById('wordcard-overlay').classList.contains('hidden')) return;
+      var popup = document.getElementById('colloc-example-popup');
+      if (popup && !popup.classList.contains('hidden')) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        ns.wordcard.hideCollocPopup();
+      }
+    }, true); // capture phase to beat global handler
+
+    // Outside click closes collocation popup
+    document.addEventListener('click', function(e) {
+      var popup = document.getElementById('colloc-example-popup');
+      if (!popup || popup.classList.contains('hidden')) return;
+      if (!e.target.closest('.colloc-chip-has-ex') && !e.target.closest('#colloc-example-popup')) {
+        ns.wordcard.hideCollocPopup();
+      }
+    });
   },
 
   show(wordId) {
@@ -205,6 +226,100 @@ ns.wordcard = {
             '<p class="text-[10px] text-zinc-600 mt-1.5">Click a sentence to hear it spoken</p>' +
           '</div>';
       }
+    }
+
+    // ── Collocations ──
+    let collocsHTML = '';
+    const collocs = typeof COLLOCATION_DATA !== 'undefined' ? COLLOCATION_DATA[wordId] : null;
+    if (collocs && collocs.length > 0) {
+      // collocs is [{words:[...], type:"...", example?:"..."}, ...]
+      // Group consecutive entries by type
+      const groups = [];
+      for (var ci = 0; ci < collocs.length; ci++) {
+        var cluster = collocs[ci];
+        var ct = cluster.type || 'other';
+        var last = groups.length > 0 ? groups[groups.length - 1] : null;
+        if (last && last.type === ct) {
+          last.clusters.push(cluster);
+        } else {
+          groups.push({ type: ct, clusters: [cluster] });
+        }
+      }
+
+      // Color-code type badges by category
+      function typeBadgeStyle(ct) {
+        var t = ct.toLowerCase();
+        if (t.indexOf('verb') === 0) return 'text-amber-300 bg-amber-500/10 border-amber-500/20';
+        if (t.indexOf('noun') === 0) return 'text-sky-300 bg-sky-500/10 border-sky-500/20';
+        if (t.indexOf('adj') === 0) return 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20';
+        if (t.indexOf('adv') === 0) return 'text-violet-300 bg-violet-500/10 border-violet-500/20';
+        if (t.indexOf('prep') === 0) return 'text-rose-300 bg-rose-500/10 border-rose-500/20';
+        if (t.indexOf('phras') === 0) return 'text-blue-300 bg-blue-500/10 border-blue-500/20';
+        return 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20';
+      }
+
+      var SHOW_INITIAL = 10;
+      var totalWordCount = 0;
+      var groupBlocks = groups.map(function(g, gi) {
+        // Count total words in this group
+        var groupWordCount = 0;
+        for (var ci = 0; ci < g.clusters.length; ci++) {
+          groupWordCount += g.clusters[ci].words.length;
+        }
+        var needsExpand = groupWordCount > SHOW_INITIAL;
+
+        function renderPills(clusters, startCount, maxToShow, countInTotal) {
+          var pills = [];
+          var absIdx = 0;
+          var shown = 0;
+          for (var ci = 0; ci < clusters.length; ci++) {
+            var cl = clusters[ci];
+            var hasEx = !!cl.example;
+            for (var wi = 0; wi < cl.words.length; wi++) {
+              if (absIdx >= startCount && shown < maxToShow) {
+                var cw = cl.words[wi];
+                var extraClass = hasEx
+                  ? ' colloc-chip-has-ex cursor-pointer hover:border-brand-400/40 hover:bg-brand-500/10 hover:text-brand-300'
+                  : '';
+                var exAttr = hasEx ? ' data-colloc-example="' + ns.wordcard.esc(cl.example).replace(/"/g, '&quot;') + '"' : '';
+                var titleAttr = hasEx ? ' title="Click for example"' : '';
+                pills.push('<span class="text-xs bg-zinc-800/80 border border-zinc-700/60 rounded-full px-2.5 py-0.5 text-zinc-300 whitespace-nowrap transition-all duration-150' + extraClass + '"' + exAttr + titleAttr + '>' +
+                  ns.wordcard.esc(cw) +
+                  (hasEx ? '<span class="colloc-ex-dot inline-block w-1.5 h-1.5 rounded-full bg-brand-400/70 ml-1 align-middle"></span>' : '') +
+                '</span>');
+                shown++;
+                if (countInTotal) totalWordCount++;
+              }
+              absIdx++;
+            }
+            if (absIdx >= startCount + maxToShow) break;
+          }
+          return pills.length > 0 ? '<div class="flex flex-wrap items-center gap-1.5">' + pills.join('') + '</div>' : '';
+        }
+
+        var visibleHTML = renderPills(g.clusters, 0, SHOW_INITIAL, true);
+        var hiddenHTML = needsExpand ? renderPills(g.clusters, SHOW_INITIAL, 999, true) : '';
+
+        var expandBtn = '';
+        if (needsExpand) {
+          var remaining = groupWordCount - SHOW_INITIAL;
+          expandBtn = '<button class="colloc-expand-btn text-[10px] text-brand-400 hover:text-brand-300 hover:underline mt-1 transition-colors" data-group="' + gi + '" data-count="' + remaining + '">' +
+            '+ ' + remaining + ' more</button>';
+        }
+
+        return '<div class="bg-zinc-900/30 rounded-xl px-3 py-2.5 border border-zinc-800/40">' +
+          '<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ' + typeBadgeStyle(g.type) + '">' + ns.wordcard.esc(g.type) + '</span>' +
+          '<div class="space-y-1.5 mt-2">' + visibleHTML + '</div>' +
+          (needsExpand ? '<div class="colloc-hidden-pills hidden space-y-1.5 mt-1.5" data-group="' + gi + '">' + hiddenHTML + '</div>' : '') +
+          expandBtn +
+        '</div>';
+      }).join('');
+
+      collocsHTML =
+        '<div class="pt-4 border-t border-zinc-800/50">' +
+          '<h4 class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Collocations <span class="font-normal text-zinc-600">(' + totalWordCount + ')</span></h4>' +
+          '<div class="space-y-2.5">' + groupBlocks + '</div>' +
+        '</div>';
     }
 
     // ── Word Forms ──
@@ -465,6 +580,7 @@ ns.wordcard = {
 
         rootsHTML +
         sentencesHTML +
+        collocsHTML +
         formsHTML +
         similarHTML +
       '</div>';
@@ -494,6 +610,196 @@ ns.wordcard = {
         if (targetId && !isNaN(targetId)) {
           ns.playSFX('click');
           this.navigateTo(targetId);
+        }
+      });
+    });
+
+    // ── Collocation popup (global portal, escapes transform containment) ──
+    var popup = document.getElementById('colloc-example-popup');
+    var popupText = document.getElementById('colloc-example-text');
+    var popupArrow = document.getElementById('colloc-example-arrow');
+    ns.wordcard._activeCollocChip = null;
+
+    // Highlight collocation words in the example sentence
+    function highlightExample(example, collocWord, targetWord) {
+      if (!example || !collocWord) return ns.wordcard.esc(example || '');
+
+      // Split collocation word by /, replace ~ with target word
+      var raw = collocWord.replace(/~/g, targetWord || '');
+      var parts = raw.split('/');
+      var terms = [];
+      for (var pi = 0; pi < parts.length; pi++) {
+        var t = parts[pi].replace(/\s*\(.*?\)\s*/g, '').trim().toLowerCase();
+        if (t) terms.push(t);
+      }
+      // Longest first so longer phrases match before substrings
+      terms.sort(function(a, b) { return b.length - a.length; });
+
+      // Find all match ranges (case-insensitive, whole-word boundaries)
+      var lower = example.toLowerCase();
+      var ranges = [];
+      for (var ti = 0; ti < terms.length; ti++) {
+        var term = terms[ti];
+        var pos = 0;
+        while ((pos = lower.indexOf(term, pos)) !== -1) {
+          var before = pos === 0 || /\W/.test(example.charAt(pos - 1));
+          var after = pos + term.length === example.length || /\W/.test(example.charAt(pos + term.length));
+          if (before && after) {
+            ranges.push({ start: pos, end: pos + term.length });
+          }
+          pos++;
+        }
+      }
+
+      if (ranges.length === 0) return ns.wordcard.esc(example);
+
+      // Merge overlapping ranges
+      ranges.sort(function(a, b) { return a.start - b.start; });
+      var merged = [];
+      for (var ri = 0; ri < ranges.length; ri++) {
+        var last = merged[merged.length - 1];
+        if (last && ranges[ri].start <= last.end) {
+          last.end = Math.max(last.end, ranges[ri].end);
+        } else {
+          merged.push({ start: ranges[ri].start, end: ranges[ri].end });
+        }
+      }
+
+      // Build HTML: escape each segment, wrap matches
+      var result = '';
+      var cursor = 0;
+      for (var mi = 0; mi < merged.length; mi++) {
+        var m = merged[mi];
+        result += ns.wordcard.esc(example.slice(cursor, m.start));
+        result += '<span style=”background:rgba(168,85,247,0.30);color:#d8b4fe;font-weight:600;border-radius:2px;padding:0 2px;box-shadow:0 0 10px rgba(168,85,247,0.25)”>' + ns.wordcard.esc(example.slice(m.start, m.end)) + '</span>';
+        cursor = m.end;
+      }
+      result += ns.wordcard.esc(example.slice(cursor));
+      return result;
+    }
+
+    // Check if example matches collocation word (for dot stripping)
+    function exampleMatchesWord(example, collocWord, targetWord) {
+      if (!example || !collocWord) return false;
+      var exLower = example.toLowerCase();
+      var w = collocWord.replace(/~/g, targetWord || '').toLowerCase().trim();
+      var parts = w.split('/');
+      for (var pi = 0; pi < parts.length; pi++) {
+        var part = parts[pi].trim();
+        if (!part) continue;
+        if (exLower.indexOf(part) !== -1) return true;
+      }
+      return false;
+    }
+
+    // Strip example dot from chips where the example doesn't match the word
+    container.querySelectorAll('.colloc-chip-has-ex').forEach(function(chip) {
+      var ex = chip.getAttribute('data-colloc-example');
+      var w = chip.textContent.replace(/[^\w\s~\/-]/g, '').trim();
+      if (!exampleMatchesWord(ex, w, entry.word)) {
+        chip.classList.remove('colloc-chip-has-ex', 'cursor-pointer', 'hover:border-brand-400/40', 'hover:bg-zinc-700/60');
+        chip.removeAttribute('data-colloc-example');
+        var dot = chip.querySelector('.colloc-ex-dot');
+        if (dot) dot.remove();
+      }
+    });
+
+    // Store on ns.wordcard so global handlers (Escape, outside click) can call it
+    ns.wordcard.hideCollocPopup = function() {
+      var p = document.getElementById('colloc-example-popup');
+      var a = document.getElementById('colloc-example-arrow');
+      if (p) { p.classList.remove('show'); p.classList.add('hidden'); p.style.left = ''; p.style.top = ''; p.style.bottom = ''; p.style.width = ''; }
+      if (a) { a.style.left = ''; a.style.right = ''; a.style.top = ''; a.style.bottom = ''; a.className = 'absolute w-3 h-3 bg-zinc-800'; }
+      if (ns.wordcard._activeCollocChip) { ns.wordcard._activeCollocChip.classList.remove('border-brand-400/40', 'bg-zinc-700/60'); ns.wordcard._activeCollocChip = null; }
+    };
+
+    function showCollocPopup(chip, example, collocWord) {
+      if (!popup || !popupText) return;
+
+      // Build highlighted example HTML
+      popupText.innerHTML = '“' + highlightExample(example, collocWord, entry.word) + '”';
+
+      var chipRect = chip.getBoundingClientRect();
+      var chipCenter = chipRect.left + chipRect.width / 2;
+      var maxW = Math.min(340, window.innerWidth - 32);
+
+      // Measure — render hidden first to get real dimensions
+      popup.style.position = 'fixed';
+      popup.style.top = '-9999px';
+      popup.style.left = '0px';
+      popup.style.width = maxW + 'px';
+      popup.classList.remove('hidden', 'show');
+      var realHeight = popup.offsetHeight;
+      var realWidth = Math.min(popup.offsetWidth, maxW);
+
+      // Anchor popup so arrow points at chip; prefer chip ~1/3 from popup left
+      var left = chipCenter - Math.min(Math.round(realWidth * 0.33), 110);
+      if (left < 8) left = 8;
+      if (left + realWidth > window.innerWidth - 8) left = window.innerWidth - realWidth - 8;
+
+      // Arrow position relative to popup
+      var arrowLeft = chipCenter - left;
+      if (arrowLeft < 14) { left = Math.max(8, chipCenter - 14); arrowLeft = chipCenter - left; }
+      if (arrowLeft > realWidth - 14) { left = Math.min(window.innerWidth - realWidth - 8, chipCenter - (realWidth - 14)); arrowLeft = chipCenter - left; }
+
+      var showBelow = true;
+      var top = chipRect.bottom + 8;
+      if (top + realHeight + 12 > window.innerHeight) {
+        showBelow = false;
+        top = chipRect.top - realHeight - 8;
+      }
+
+      if (popupArrow) {
+        popupArrow.style.left = arrowLeft + 'px';
+        if (showBelow) {
+          popupArrow.style.top = '-5px'; popupArrow.style.bottom = '';
+          popupArrow.className = 'absolute w-3 h-3 bg-zinc-800 border-l border-t border-zinc-600 rotate-45';
+        } else {
+          popupArrow.style.bottom = '-5px'; popupArrow.style.top = '';
+          popupArrow.className = 'absolute w-3 h-3 bg-zinc-800 border-r border-b border-zinc-600 rotate-45';
+        }
+      }
+
+      popup.style.position = 'fixed';
+      popup.style.top = top + 'px';
+      popup.style.left = left + 'px';
+      popup.style.width = realWidth + 'px';
+
+      // Show with fade-in
+      requestAnimationFrame(function() {
+        popup.classList.add('show');
+      });
+    }
+
+    container.querySelectorAll('.colloc-chip-has-ex').forEach(function(chip) {
+      chip.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (ns.wordcard._activeCollocChip === chip) { ns.wordcard.hideCollocPopup(); return; }
+
+        ns.wordcard.hideCollocPopup();
+        ns.wordcard._activeCollocChip = chip;
+        chip.classList.add('border-brand-400/40', 'bg-zinc-700/60');
+
+        var example = chip.getAttribute('data-colloc-example');
+        var collocWord = chip.textContent.replace(/[^\w\s~\/-]/g, '').trim();
+        showCollocPopup(chip, example, collocWord);
+      });
+    });
+
+    // Bind collocation expand/collapse buttons
+    container.querySelectorAll('.colloc-expand-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var gi = btn.getAttribute('data-group');
+        var hiddenDiv = container.querySelector('.colloc-hidden-pills[data-group="' + gi + '"]');
+        if (hiddenDiv) {
+          var isHidden = hiddenDiv.classList.contains('hidden');
+          hiddenDiv.classList.toggle('hidden');
+          if (isHidden) {
+            btn.textContent = '- Show less';
+          } else {
+            btn.textContent = '+ ' + btn.getAttribute('data-count') + ' more';
+          }
         }
       });
     });

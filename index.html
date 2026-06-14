@@ -78,8 +78,33 @@
     #app-loader.hidden {
       opacity: 0; visibility: hidden; pointer-events: none;
     }
+    /* Mode sub-panel transitions — prevent layout shift when switching modes */
+    .mode-sub-panel {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+    }
+    .mode-sub-panel.active {
+      max-height: 600px;
+      opacity: 1;
+    }
+    /* Accuracy threshold row — animate instead of layout shift */
+    .acc-threshold-row {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      display: flex;
+      transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+      margin-top: 0;
+    }
+    .acc-threshold-row.active {
+      max-height: 40px;
+      opacity: 1;
+      margin-top: 0.5rem;
+    }
     .loader-spinner {
-      width: 36px; height: 36px;
+      width: 36px; height: 36px; margin-bottom: 18px;
       border: 3px solid #27272a; /* zinc-800 */
       border-top-color: #14b8a6; /* brand-500 */
       border-radius: 50%;
@@ -88,14 +113,25 @@
     @keyframes loader-spin {
       to { transform: rotate(360deg); }
     }
+    /* Collocation popup show/hide */
+    #colloc-example-popup.show {
+      opacity: 1;
+    }
+    /* Reset browser default yellow on mark */
+    mark { background: transparent; color: inherit; }
   </style>
 </head>
 <body class="h-full flex flex-col justify-between overflow-x-hidden">
 
   <!-- Loading Screen (shown until app initializes) -->
   <div id="app-loader">
-    <div class="loader-spinner" style="margin-bottom:16px;"></div>
-    <p style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#71717a;">Loading Vocab Gym…</p>
+    <div class="loader-spinner"></div>
+    <p id="loader-title" style="font-family:'JetBrains Mono',monospace;font-size:16px;color:#d4d4d8;margin:0 0 8px 0;">English Vocab Gym</p>
+    <p id="loader-status" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#a1a1aa;margin:0 0 20px 0;">Initializing…</p>
+    <div id="loader-progress" style="width:200px;height:3px;background:#27272a;border-radius:2px;overflow:hidden;">
+      <div id="loader-progress-bar" style="width:0%;height:100%;background:#14b8a6;border-radius:2px;transition:width 0.4s ease-out;"></div>
+    </div>
+    <p id="loader-hint" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#52525b;margin:14px 0 0 0;max-width:280px;text-align:center;line-height:1.5;">First visit may take a moment while we prepare your vocabulary database. Please be patient!</p>
   </div>
 
   <!-- Offline Indicator -->
@@ -176,6 +212,12 @@
             <div id="stat-count-unlearned" class="text-sm font-bold text-zinc-400">0</div>
             <div class="text-[9px] uppercase tracking-wider text-zinc-500">Unlearned</div>
           </div>
+          <!-- Keyboard Shortcuts Entry -->
+          <div class="h-6 border-r border-zinc-900 mx-0.5"></div>
+          <button id="header-keyboard-btn" class="hidden sm:flex items-center gap-1.5 flex-shrink-0 text-zinc-500 hover:text-brand-400 transition-colors group" title="Keyboard Shortcuts (press ?)">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+            <kbd class="bg-zinc-800 border border-zinc-700 text-zinc-400 group-hover:text-zinc-200 px-1.5 py-px rounded font-mono text-[10px] font-bold transition-colors">?</kbd>
+          </button>
         </div>
       </div>
 
@@ -283,193 +325,172 @@
 
         <!-- Right Panel: Session Workout Configuration -->
         <div class="lg:col-span-7">
-          <div class="glass-card rounded-2xl p-6 flex flex-col justify-between h-full space-y-6">
-            <div>
+          <div class="glass-card rounded-2xl p-6 flex flex-col space-y-5 h-full">
+
+            <!-- Header -->
+            <div class="min-w-0">
               <h2 class="text-lg font-bold text-zinc-100">Configure Workout Session</h2>
               <p class="text-sm text-zinc-400 mt-0.5">Choose mode and tailor the queue for optimal review</p>
             </div>
 
-            <!-- Session Mode Selector -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Mode</h3>
-              <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
-                <button id="mode-btn-dictation" class="mode-select-btn text-xs font-semibold px-3 py-1.5 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="dictation">Dictation</button>
-                <button id="mode-btn-mc" class="mode-select-btn text-xs font-semibold px-3 py-1.5 rounded-md transition-all text-zinc-500 hover:text-zinc-200" data-mode="multipleChoice">Multiple Choice</button>
-              </div>
-              <!-- Dictation sub-options -->
-              <div id="dictation-sub-options" class="hidden">
+            <!-- Mode Selector — full-width, prominent -->
+            <div class="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-4">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-shrink-0">Mode</span>
                 <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
-                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="dictation" data-value="standard">Standard</button>
-                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-mode="dictation" data-value="hard">Hard</button>
+                  <button id="mode-btn-dictation" class="mode-select-btn text-xs font-semibold px-3 py-1.5 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="dictation">Dictation</button>
+                  <button id="mode-btn-mc" class="mode-select-btn text-xs font-semibold px-3 py-1.5 rounded-md transition-all text-zinc-500 hover:text-zinc-200" data-mode="multipleChoice">Multi-Choice</button>
+                  <button id="mode-btn-mixed" class="mode-select-btn text-xs font-semibold px-3 py-1.5 rounded-md transition-all text-zinc-500 hover:text-zinc-200" data-mode="mixed">Mixed</button>
                 </div>
+                <!-- Mode hint — dynamically updated -->
+                <span id="mode-hint" class="text-[10px] text-zinc-600 ml-1 hidden sm:inline">Listen &amp; spell the word</span>
               </div>
+
+              <!-- Dictation sub-options -->
+              <div id="dictation-sub-options" class="mode-sub-panel">
+                <div class="flex items-center gap-3 pt-0.5">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-shrink-0">Style</span>
+                  <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                    <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="dictation" data-value="standard">Standard</button>
+                    <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-mode="dictation" data-value="hard">Hard</button>
+                  </div>
+                </div>
+                <p class="text-[10px] text-zinc-600 mt-1.5">Type the word after hearing its pronunciation. Hard mode hides the word length hint.</p>
+              </div>
+
               <!-- Multiple Choice sub-options -->
-              <div id="mc-sub-options" class="hidden">
-                <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
-                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="mc" data-value="audio">Listen &amp; Pick</button>
-                  <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-mode="mc" data-value="definition">See Word &amp; Pick</button>
+              <div id="mc-sub-options" class="mode-sub-panel">
+                <div class="flex items-center gap-3 pt-0.5">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-shrink-0">Style</span>
+                  <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                    <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-mode="mc" data-value="audio">Listen &amp; Pick</button>
+                    <button class="submode-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-mode="mc" data-value="definition">See Word &amp; Pick</button>
+                  </div>
+                </div>
+                <p class="text-[10px] text-zinc-600 mt-1.5">Choose the correct definition from four options, by ear or by reading the word.</p>
+              </div>
+
+              <!-- Mixed mode weight config -->
+              <div id="mixed-type-config" class="mode-sub-panel">
+                <div class="flex items-center justify-between mb-2 pt-0.5">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Question Types</span>
+                  <span class="text-[10px] text-zinc-600">Higher weight = more frequent</span>
+                </div>
+                <div id="mixed-type-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <!-- Populated by JS -->
                 </div>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <!-- Session Filters -->
+            <!-- Main config: 2-column grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+              <!-- Left: Queue config -->
               <div class="space-y-4">
-                                <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Target Filters</h3>
+                <!-- Target Filters — segmented buttons -->
                 <div class="space-y-3">
-                  <label class="flex items-start gap-3 cursor-pointer group">
-                    <input type="radio" name="session-filter" value="unlearned" checked class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
-                    <div>
-                      <span class="text-sm font-semibold text-brand-400 group-hover:text-brand-300 transition-colors flex items-center gap-1.5">
-                        Unlearned Words
-                        <span class="text-[10px] bg-brand-500/10 border border-brand-500/20 text-brand-400 px-1.5 py-0.2 rounded-full">Default</span>
-                      </span>
-                      <p class="text-xs text-zinc-500">Words yet to be attempted or studied</p>
+                  <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-shrink-0">Target</span>
+                    <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                      <button class="filter-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-filter="unlearned">Unlearned</button>
+                      <button class="filter-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-filter="all">All</button>
+                      <button class="filter-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-filter="reviewing">Learning</button>
+                      <button class="filter-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-filter="low-accuracy">Low Acc</button>
                     </div>
-                  </label>
-                  <label class="flex items-start gap-3 cursor-pointer group">
-                    <input type="radio" name="session-filter" value="all" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
-                    <div>
-                      <span class="text-sm font-semibold text-zinc-200 group-hover:text-zinc-100 transition-colors">All Vocabulary Words</span>
-                      <p class="text-xs text-zinc-500">Include every active word in your list</p>
+                  </div>
+                  <div id="accuracy-threshold-row" class="acc-threshold-row items-center gap-2">
+                    <span class="text-[10px] text-zinc-500">Accuracy below:</span>
+                    <div class="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-0.5">
+                      <input type="number" id="accuracy-threshold" value="60" min="1" max="100" class="w-10 bg-transparent text-xs text-center focus:outline-none font-bold text-zinc-200" />
+                      <span class="text-[10px] text-zinc-500">%</span>
                     </div>
-                  </label>
-                  <label class="flex items-start gap-3 cursor-pointer group">
-                    <input type="radio" name="session-filter" value="reviewing" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
-                    <div>
-                      <span class="text-sm font-semibold text-amber-400 group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
-                        Learning + Reviewing
-                      </span>
-                      <p class="text-xs text-zinc-500">Words in active SRS rotation that still need practice</p>
-                    </div>
-                  </label>
-                  <label class="flex items-start gap-3 cursor-pointer group">
-                    <input type="radio" name="session-filter" value="low-accuracy" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
-                    <div>
-                      <span class="text-sm font-semibold text-rose-400 group-hover:text-rose-300 transition-colors flex items-center gap-1.5">
-                        Low Accuracy Words
-                      </span>
-                      <div class="flex items-center gap-2 mt-1">
-                        <span class="text-xs text-zinc-500">Accuracy rate lower than:</span>
-                        <div class="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-0.5 w-16">
-                          <input type="number" id="accuracy-threshold" value="60" min="1" max="100" class="w-8 bg-transparent text-xs text-center focus:outline-none font-bold text-zinc-200" />
-                          <span class="text-[10px] text-zinc-500">%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </label>
+                  </div>
+                  <!-- Hidden radios for JS compatibility -->
+                  <input type="radio" name="session-filter" value="unlearned" checked class="hidden">
+                  <input type="radio" name="session-filter" value="all" class="hidden">
+                  <input type="radio" name="session-filter" value="reviewing" class="hidden">
+                  <input type="radio" name="session-filter" value="low-accuracy" class="hidden">
                 </div>
 
-                <!-- Word order -->
-                <div class="pt-3 border-t border-zinc-800/50">
-                  <h4 class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Word Order</h4>
-                  <div class="space-y-2">
-                    <label class="flex items-start gap-3 cursor-pointer group">
-                      <input type="radio" name="session-order" value="shuffled" checked class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
-                      <div>
-                        <span class="text-sm font-semibold text-zinc-200 group-hover:text-zinc-100 transition-colors">Shuffled</span>
-                        <p class="text-xs text-zinc-500">Randomize words each session</p>
-                      </div>
-                    </label>
-                    <label class="flex items-start gap-3 cursor-pointer group">
-                      <input type="radio" name="session-order" value="book-order" class="mt-1 accent-brand-500 h-4 w-4 bg-zinc-900 border-zinc-800 focus:ring-brand-500" />
-                      <div>
-                        <span class="text-sm font-semibold text-zinc-200 group-hover:text-zinc-100 transition-colors">Book Order</span>
-                        <p class="text-xs text-zinc-500">Sequential, as listed in your word books</p>
-                      </div>
-                    </label>
+                <!-- Word Order — toggle button -->
+                <div class="pt-3 border-t border-zinc-800/50 flex items-center gap-3">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-shrink-0">Order</span>
+                  <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                    <button class="order-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400" data-order="shuffled">Shuffled</button>
+                    <button class="order-toggle-btn text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300" data-order="book-order">Book</button>
                   </div>
-                  <!-- SM-2 Review Ratio Slider -->
-                  <div class="pt-2.5 mt-2 border-t border-zinc-800/30">
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="text-sm font-semibold text-zinc-200">SM-2 Review Ratio</span>
-                      <span class="text-xs font-mono font-bold text-brand-400"><span id="srs-ratio-value">0</span>%</span>
-                    </div>
-                    <p class="text-xs text-zinc-500 mb-2">Mix SRS due words into the session queue</p>
-                    <div class="flex items-center gap-3">
-                      <span class="text-[10px] text-zinc-600 w-8 text-right">Filter</span>
-                      <input type="range" id="srs-ratio-slider" min="0" max="100" value="0" step="5"
-                        class="flex-1 h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer
-                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-500
-                          [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-brand-500/30
-                          [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform
-                          [&::-webkit-slider-thumb]:hover:scale-110" />
-                      <span class="text-[10px] text-zinc-600 w-10">Review</span>
-                    </div>
+                  <!-- Hidden radios for JS compatibility -->
+                  <input type="radio" name="session-order" value="shuffled" checked class="hidden">
+                  <input type="radio" name="session-order" value="book-order" class="hidden">
+                </div>
+
+                <!-- SM-2 Review Ratio -->
+                <div class="pt-3 border-t border-zinc-800/50 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-zinc-300">SM-2 Review Mix</span>
+                    <span class="text-xs font-mono font-bold text-brand-400"><span id="srs-ratio-value">0</span>%</span>
+                  </div>
+                  <p class="text-[10px] text-zinc-500">Blend SRS due words into the session</p>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-zinc-600">New</span>
+                    <input type="range" id="srs-ratio-slider" min="0" max="100" value="0" step="5"
+                      class="flex-1 h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer
+                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-500
+                        [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-brand-500/30
+                        [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform
+                        [&::-webkit-slider-thumb]:hover:scale-110" />
+                    <span class="text-[10px] text-zinc-600">Review</span>
                   </div>
                 </div>
               </div>
 
-              <!-- Setup inputs & Speech panel -->
+              <!-- Right: Session settings -->
               <div class="space-y-4">
-                
-                <!-- Speed timer setting -->
-                <div class="space-y-2">
-                  <label for="session-timer" class="block text-xs font-semibold uppercase tracking-wider text-zinc-500">Time Limit per Word</label>
-                  <div class="relative">
-                    <input type="number" id="session-timer" placeholder="Infinite" min="3" max="120" class="input-premium py-2.5 text-sm pr-12" />
-                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-500 uppercase">Secs</span>
+                <!-- Session size + timer in a compact row -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="space-y-1.5">
+                    <label for="session-size" class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Words</label>
+                    <input type="number" id="session-size" value="20" placeholder="All" min="1" class="input-premium py-2 text-sm text-center" />
                   </div>
-                  <p class="text-[11px] text-zinc-500">Seconds to spell each word. Leave blank for endless time.</p>
+                  <div class="space-y-1.5">
+                    <label for="session-timer" class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Time (sec)</label>
+                    <input type="number" id="session-timer" placeholder="∞" min="3" max="120" class="input-premium py-2 text-sm text-center" />
+                  </div>
                 </div>
 
-                <!-- Session size setting -->
-                <div class="space-y-2">
-                  <label for="session-size" class="block text-xs font-semibold uppercase tracking-wider text-zinc-500">Words per Session</label>
-                  <div class="relative">
-                    <input type="number" id="session-size" value="20" placeholder="All matching" min="1" class="input-premium py-2.5 text-sm pr-16" />
-                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-500 uppercase">Words</span>
-                  </div>
-                  <p class="text-[11px] text-zinc-500">Number of words to test. Leave blank to queue all matching words.</p>
-                </div>
-
-                <!-- Audio Profile -->
-                <div class="space-y-3 bg-zinc-900/30 border border-zinc-800/80 p-3 rounded-xl">
-                  <div class="flex items-center justify-between">
-                    <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Audio Profile</h4>
-                    <button id="btn-test-audio" class="text-[11px] text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors">
+                <!-- Audio — logical rows -->
+                <div class="bg-zinc-900/30 border border-zinc-800/60 rounded-xl p-3 space-y-2.5">
+                  <!-- Row 1: Engine + Accent + Test -->
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Engine</span>
+                    <div class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                      <button id="dashboard-source-youdao" class="text-[10px] font-semibold px-2 py-1 rounded-md transition-all tts-source-btn bg-brand-500/15 text-brand-400" data-source="youdao">Youdao</button>
+                      <button id="dashboard-source-webspeech" class="text-[10px] font-semibold px-2 py-1 rounded-md transition-all tts-source-btn text-zinc-500 hover:text-zinc-300" data-source="webspeech">Web</button>
+                    </div>
+                    <span class="text-zinc-700 mx-1">·</span>
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Accent</span>
+                    <div id="dashboard-youdao-settings" class="inline-flex rounded-lg bg-zinc-900/60 border border-zinc-800/60 p-0.5">
+                      <button id="dashboard-accent-uk" class="text-[10px] font-semibold px-2 py-1 rounded-md transition-all accent-toggle-btn bg-amber-500/15 text-amber-400" data-accent="uk">UK</button>
+                      <button id="dashboard-accent-us" class="text-[10px] font-semibold px-2 py-1 rounded-md transition-all accent-toggle-btn text-zinc-500 hover:text-zinc-300" data-accent="us">US</button>
+                    </div>
+                    <div id="dashboard-webspeech-settings" class="hidden items-center gap-1">
+                      <span class="text-[10px] text-zinc-500">Voice</span>
+                      <select id="voice-selector" class="bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1 text-[10px] text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-500 max-w-[110px]"></select>
+                    </div>
+                    <span class="flex-1"></span>
+                    <button id="btn-test-audio" class="text-[10px] text-zinc-500 hover:text-brand-400 flex items-center gap-1 transition-colors px-2 py-1 rounded-md hover:bg-zinc-800">
                       <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
                       Test
                     </button>
                   </div>
-
-                  <!-- TTS Source -->
-                  <div class="space-y-1.5">
-                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">TTS Engine</span>
-                    <div class="grid grid-cols-2 gap-1.5">
-                      <button id="dashboard-source-youdao" class="text-xs font-semibold py-1.5 px-2 rounded-lg border transition-all tts-source-btn whitespace-nowrap" data-source="youdao">🎙 Youdao</button>
-                      <button id="dashboard-source-webspeech" class="text-xs font-semibold py-1.5 px-2 rounded-lg border transition-all tts-source-btn whitespace-nowrap" data-source="webspeech">🌐 Web Speech</button>
-                    </div>
-                  </div>
-
-                  <!-- Youdao settings -->
-                  <div id="dashboard-youdao-settings" class="space-y-1.5">
-                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Accent</span>
-                    <div class="flex items-center gap-2">
-                      <button id="dashboard-accent-uk" class="flex-1 text-xs font-semibold py-1.5 rounded-lg border transition-all accent-toggle-btn" data-accent="uk">UK</button>
-                      <button id="dashboard-accent-us" class="flex-1 text-xs font-semibold py-1.5 rounded-lg border transition-all accent-toggle-btn" data-accent="us">US</button>
-                    </div>
-                  </div>
-
-                  <!-- Web Speech settings -->
-                  <div id="dashboard-webspeech-settings" class="hidden space-y-1.5">
-                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Voice</span>
-                    <select id="voice-selector" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                    </select>
-                  </div>
-
-                  <!-- Speech Rate (shared) -->
-                  <div class="space-y-1.5">
-                    <div class="flex justify-between text-[11px] text-zinc-500">
-                      <span>Speech Rate</span>
-                      <span id="rate-value" class="font-bold text-zinc-300">1.0x</span>
-                    </div>
-                    <input type="range" id="voice-rate" min="0.5" max="1.8" step="0.1" value="1.0" class="w-full accent-brand-500 bg-zinc-800 h-1 rounded-lg cursor-pointer" />
+                  <!-- Row 2: Speed slider -->
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex-shrink-0">Speed</span>
+                    <input type="range" id="voice-rate" min="0.5" max="1.8" step="0.1" value="1.0" class="flex-1 accent-brand-500 h-1 cursor-pointer" />
+                    <span id="rate-value" class="text-[10px] font-mono font-bold text-zinc-400 w-8 text-right">1.0x</span>
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -486,7 +507,7 @@
       </div>
 
       <!-- KEYBOARD CHEATSHEET QUICK PANEL -->
-      <div class="glass-card rounded-2xl p-4 flex flex-wrap gap-6 items-center justify-around border-zinc-800/40 text-xs text-zinc-400 bg-zinc-950/20">
+      <div id="keyboard-cheatsheet-panel" class="glass-card rounded-2xl p-4 flex flex-wrap gap-6 items-center justify-around border-zinc-800/40 text-xs text-zinc-400 bg-zinc-950/20">
         <span class="font-semibold text-zinc-300 flex items-center gap-1.5">
           <svg class="h-4 w-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
           Keyboard Hotkeys:
@@ -520,7 +541,7 @@
         <div class="absolute top-0 left-0 right-0 h-[3px] bg-zinc-800">
           <div id="session-progress-bar" class="h-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all duration-300" style="width: 0%"></div>
         </div>
-        <div class="flex items-center px-4 py-2 gap-3 pt-[5px]">
+        <div class="flex items-stretch px-4 py-2 gap-3 pt-[5px] min-h-[44px]">
           <!-- Left: navigation + progress -->
           <button id="btn-quit-session" class="text-xs font-semibold text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors flex-shrink-0">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -600,16 +621,16 @@
           <select id="session-voice-selector" class="hidden"></select>
           <input type="range" id="session-voice-rate" min="0.5" max="1.8" step="0.1" value="1.0" class="hidden" />
         </div>
+        <!-- Keyboard hints: absolute centered inside nav bar, never shifts layout -->
+        <div id="session-keyboard-hints" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 flex-wrap justify-center text-[10px] text-zinc-500 pointer-events-none select-none"></div>
       </div>
 
-
-
       <!-- Dictation Layout Wrapper: input card + word card panel (layout toggle controls direction) -->
-      <div id="dictation-layout-wrapper" class="w-full max-w-5xl mx-auto flex flex-col gap-5">
+      <div id="dictation-layout-wrapper" class="w-full mx-auto flex flex-col gap-5">
 
         <!-- Mode Card (content injected by active mode) -->
-        <div id="dictation-card" class="glass-card rounded-3xl p-6 transition-all duration-300 flex-1 min-w-0 overflow-hidden">
-          <div id="mode-content-area" class="flex flex-col items-center justify-between h-full"></div>
+        <div id="dictation-card" class="glass-card rounded-3xl p-6 transition-all duration-300 flex-shrink-0 min-w-0">
+          <div id="mode-content-area" class="flex flex-col items-center h-full"></div>
         </div>
 
         <!-- Word Card Panel -->
@@ -724,6 +745,116 @@
         <span class="text-[10px] uppercase tracking-wider text-zinc-600 mr-2">Up Next</span>
         <div id="srs-due-preview" class="inline-flex items-center gap-1.5 flex-wrap">
           <span class="text-xs text-zinc-600">Loading...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ledger / Stats Tab Bar -->
+    <div id="dashboard-tabs" class="flex items-center gap-1 border-b border-zinc-800/50 mt-10">
+      <button id="tab-ledger" class="text-xs font-semibold px-4 py-2 border-b-2 transition-all cursor-pointer text-brand-400 border-brand-500">Vocabulary Ledger</button>
+      <button id="tab-stats" class="hidden text-xs font-semibold px-4 py-2 border-b-2 transition-all cursor-pointer text-zinc-500 border-transparent hover:text-zinc-300 hover:border-zinc-700">Learning Stats</button>
+    </div>
+
+    <!-- Stats View (hidden by default) -->
+    <div id="stats-view" class="hidden mt-8 space-y-8 animate-fade-in">
+      <!-- Today's Hero Summary -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass-card rounded-2xl p-5 border-zinc-800/50 relative overflow-hidden group hover:border-zinc-800/80 transition-all">
+          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent"></div>
+          <div class="flex items-start justify-between mb-3">
+            <span class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Words Today</span>
+            <svg class="h-4 w-4 text-brand-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div id="stats-today-words" class="text-3xl font-black text-brand-400 tabular-nums">0</div>
+          <div class="mt-1 text-[10px] text-zinc-600">words practiced</div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border-zinc-800/50 relative overflow-hidden group hover:border-zinc-800/80 transition-all">
+          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent"></div>
+          <div class="flex items-start justify-between mb-3">
+            <span class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Accuracy</span>
+            <svg class="h-4 w-4 text-emerald-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <div id="stats-today-accuracy" class="text-3xl font-black text-emerald-400">--</div>
+          <div class="mt-1 text-[10px] text-zinc-600">correct answers</div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border-zinc-800/50 relative overflow-hidden group hover:border-zinc-800/80 transition-all">
+          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent"></div>
+          <div class="flex items-start justify-between mb-3">
+            <span class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Goal Progress</span>
+            <svg class="h-4 w-4 text-amber-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+          </div>
+          <div id="stats-today-goal-pct" class="text-3xl font-black text-amber-400">--</div>
+          <div class="mt-1 text-[10px] text-zinc-600">of daily target</div>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border-zinc-800/50 relative overflow-hidden group hover:border-zinc-800/80 transition-all">
+          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent"></div>
+          <div class="flex items-start justify-between mb-3">
+            <span class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Streak</span>
+            <svg class="h-4 w-4 text-violet-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/></svg>
+          </div>
+          <div id="stats-streak" class="text-3xl font-black text-violet-400">--</div>
+          <div class="mt-1 text-[10px] text-zinc-600">consecutive days</div>
+        </div>
+      </div>
+
+      <!-- Chart + Weekly Calendar -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Bar Chart -->
+        <div class="lg:col-span-2 glass-card rounded-2xl p-6 border-zinc-800/50">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h3 class="text-sm font-bold text-zinc-200">Practice History</h3>
+              <p class="text-[11px] text-zinc-500 mt-0.5">Words practiced per day</p>
+            </div>
+            <div class="flex items-center gap-1 bg-zinc-900 border border-zinc-800/60 rounded-lg p-0.5">
+              <button id="btn-stats-7d" class="text-[11px] font-semibold px-3 py-1 rounded-md transition-all bg-brand-500/15 text-brand-400">7 Days</button>
+              <button id="btn-stats-30d" class="text-[11px] font-semibold px-3 py-1 rounded-md transition-all text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50">30 Days</button>
+            </div>
+          </div>
+          <div id="stats-chart-area" class="relative">
+            <p class="text-zinc-500 text-xs text-center py-10">Complete a practice session to start building your chart.</p>
+          </div>
+        </div>
+
+        <!-- Weekly Heatmap + Streak Info -->
+        <div class="glass-card rounded-2xl p-6 border-zinc-800/50 space-y-4">
+          <div>
+            <h3 class="text-sm font-bold text-zinc-200">This Week</h3>
+            <p class="text-[11px] text-zinc-500 mt-0.5">Your daily activity</p>
+          </div>
+          <div id="stats-weekly-heatmap" class="space-y-2">
+            <p class="text-zinc-500 text-[11px] text-center py-6">No data yet this week.</p>
+          </div>
+          <div class="border-t border-zinc-800/50 pt-4">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-zinc-500">Best day</span>
+              <span id="stats-best-day" class="text-zinc-300 font-semibold">--</span>
+            </div>
+            <div class="flex items-center justify-between text-xs mt-2">
+              <span class="text-zinc-500">Weekly total</span>
+              <span id="stats-weekly-total" class="text-zinc-300 font-semibold">0 words</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Goal Setting -->
+      <div class="glass-card rounded-2xl p-6 border-zinc-800/50">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-bold text-zinc-200">Daily Goal</h3>
+            <p class="text-[11px] text-zinc-500 mt-0.5">Set how many words you want to practice each day</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="stats-goal-preset text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all bg-brand-500/15 text-brand-400 border-brand-500/30" data-goal="10">10</button>
+            <button class="stats-goal-preset text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:border-zinc-700" data-goal="20">20</button>
+            <button class="stats-goal-preset text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:border-zinc-700" data-goal="30">30</button>
+            <button class="stats-goal-preset text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:border-zinc-700" data-goal="50">50</button>
+            <div class="flex items-center gap-1.5 ml-2">
+              <input type="number" id="daily-goal-input" value="20" min="1" max="500" class="w-16 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-500 text-center font-bold" />
+              <span class="text-[10px] text-zinc-500">custom</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -878,10 +1009,14 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="border-t border-zinc-900 bg-zinc-950/20 py-6 mt-12 text-center text-xs text-zinc-600 font-medium">
-    <div class="max-w-7xl mx-auto px-4 flex items-center justify-center gap-4">
+  <footer class="border-t border-zinc-900 bg-zinc-950/20 py-5 mt-12 text-center text-xs text-zinc-600 font-medium">
+    <div class="max-w-7xl mx-auto px-4 flex items-center justify-center gap-5">
       <p>© 2026 English Vocab Gym. IELTS vocabulary training suite.</p>
-
+      <span class="text-zinc-700">·</span>
+      <button id="btn-footer-keyboard" class="flex items-center gap-1 text-zinc-500 hover:text-brand-400 transition-colors font-medium" title="Keyboard Shortcuts">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+        Full Shortcuts
+      </button>
     </div>
   </footer>
 
@@ -905,6 +1040,8 @@
   <script src="js/ui-dashboard.js"></script>
   <script src="js/ui-dictation.js"></script>
   <script src="js/ui-multiple-choice.js"></script>
+  <script src="js/question-types.js"></script>
+  <script src="js/ui-mixed.js"></script>
   <script src="js/ui-ledger.js"></script>
   <script src="js/ui-search.js"></script>
   <script src="js/ui-wordcard.js"></script>
@@ -913,7 +1050,38 @@
   <script src="js/sw-register.js"></script>
   <script src="js/share.js"></script>
   <script src="js/sentences.js"></script>
+  <script src="js/collocation-data.js"></script>
   <script src="js/ielts-vocab-data.js"></script>
+  <!-- <script src="js/ui-stats.js"></script> -->
+  <script src="js/ui-keyboard.js"></script>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="keyboard-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+    <div class="glass-card rounded-2xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl shadow-black/60">
+      <!-- Header -->
+      <div class="flex items-center gap-2 px-5 py-3 border-b border-zinc-800/50 flex-shrink-0 bg-zinc-950/90 backdrop-blur-sm rounded-t-2xl">
+        <svg class="h-4 w-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+        <span class="text-sm font-semibold text-zinc-300">Keyboard Shortcuts</span>
+        <span class="flex-1"></span>
+        <span class="text-[10px] text-zinc-600 font-mono mr-2">Esc to close</span>
+        <button id="btn-keyboard-close" class="text-zinc-500 hover:text-zinc-200 p-1 transition-colors" title="Close (Escape)">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-6">
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Keyboard Layout</h3>
+          <div id="keyboard-layout" class="bg-zinc-950/60 border border-zinc-800/60 rounded-xl p-4"></div>
+        </div>
+        <hr class="border-zinc-800/50">
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">All Shortcuts</h3>
+          <div id="keyboard-shortcut-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Share Modal -->
   <div id="share-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
@@ -1021,6 +1189,12 @@
       <!-- Scrollable Content -->
       <div id="wordcard-content" class="flex-1 overflow-y-auto p-5 space-y-5"></div>
     </div>
+  </div>
+
+  <!-- Global collocation example popup (body-level to escape transform containment) -->
+  <div id="colloc-example-popup" class="hidden fixed z-[80] bg-zinc-800 border border-zinc-600/80 rounded-xl p-3 shadow-xl shadow-black/50 max-w-[340px] opacity-0 transition-opacity duration-150">
+    <p id="colloc-example-text" class="text-xs text-zinc-200 leading-relaxed"></p>
+    <div id="colloc-example-arrow" class="absolute w-3 h-3 bg-zinc-800"></div>
   </div>
 
 </body>

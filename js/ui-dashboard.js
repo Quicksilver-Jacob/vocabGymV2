@@ -448,6 +448,7 @@ ns.dashboard = {
 
     this.updateStats();
     this.updateHeaderStats();
+    this.updateGoalProgress();
 
     const btnStart = document.getElementById('btn-start-session');
     const hint = document.getElementById('stats-empty-hint');
@@ -540,6 +541,33 @@ ns.dashboard = {
     if (statReviewing) statReviewing.textContent = counts.reviewing;
     if (statLearning) statLearning.textContent = counts.learning;
     if (statUnlearned) statUnlearned.textContent = counts.unlearned;
+  },
+
+  updateGoalProgress: function() {
+    var ring = document.getElementById('goal-progress-ring');
+    var text = document.getElementById('goal-progress-text');
+    var streakEl = document.getElementById('goal-streak-text');
+    if (!ring && !text && !streakEl) return;
+    var goal = ns.state.getDailyGoal();
+    var todayStats = ns.state.getTodayStats();
+    var practiced = todayStats.wordsPracticed;
+    var pct = goal > 0 ? Math.min(100, Math.round((practiced / goal) * 100)) : 0;
+    if (ring) {
+      var circ = 2 * Math.PI * 11;
+      var offset = circ - (pct / 100) * circ;
+      ring.setAttribute('stroke-dasharray', circ);
+      ring.setAttribute('stroke-dashoffset', offset);
+      ring.classList.remove('text-brand-500', 'text-emerald-400');
+      ring.classList.add(pct >= 100 ? 'text-emerald-400' : 'text-brand-500');
+    }
+    if (text) {
+      text.textContent = pct >= 100 ? '✓' : practiced;
+      text.className = 'absolute text-[9px] font-black tabular-nums ' + (pct >= 100 ? 'text-emerald-200' : 'text-zinc-200');
+    }
+    var self = this;
+    ns.state.getStreakAsync().then(function(s) {
+      if (streakEl) streakEl.textContent = s.streak > 0 ? s.streak + 'd' : '--';
+    });
   },
 
 };

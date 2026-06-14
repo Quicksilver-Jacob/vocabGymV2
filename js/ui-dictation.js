@@ -57,59 +57,59 @@ ns.dictation = {
   // ── Mode UI ──
 
   _initModeUI: function(container) {
+    var kb = ns.keybindings;
+
     container.innerHTML =
-      '<div class="flex flex-col items-center justify-between h-full">' +
-        '<div class="flex items-end justify-center flex-1 pb-2">' +
-          '<div class="flex flex-col items-center">' +
-            '<button id="btn-dictation-pronounce" class="h-20 w-20 rounded-full bg-zinc-900 border-2 border-zinc-800 hover:border-brand-500 text-zinc-400 hover:text-brand-400 flex items-center justify-center transition-all duration-300 transform active:scale-95 shadow-2xl relative group">' +
-              '<div class="absolute inset-0 rounded-full bg-brand-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"></div>' +
-              '<svg class="h-9 w-9 transition-transform group-hover:scale-105" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' +
-                '<path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 18.75V5.25L7.75 9.5H4.5v5h3.25L12 18.75z" />' +
-              '</svg>' +
+      '<div class="flex flex-col items-center h-full">' +
+        // Top toolbar: word audio + sentence audio, centered
+        '<div class="flex items-center justify-center gap-3 max-w-md mx-auto pt-1 pb-0.5 flex-shrink-0">' +
+          '<button id="btn-dictation-pronounce" class="h-9 w-9 rounded-full bg-zinc-900 border border-zinc-800 hover:border-brand-500/50 text-zinc-500 hover:text-brand-400 flex items-center justify-center transition-all duration-200 transform active:scale-95 relative group flex-shrink-0" title="Replay audio (' + kb.getDisplayKey('word_audio') + ')">' +
+            '<svg class="h-4 w-4 transition-transform group-hover:scale-105" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' +
+              '<path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 18.75V5.25L7.75 9.5H4.5v5h3.25L12 18.75z" />' +
+            '</svg>' +
+          '</button>' +
+          '<span class="w-9 h-9 flex items-center justify-center flex-shrink-0">' +
+            '<button id="btn-sentence-audio" class="hidden h-9 w-9 rounded-full bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 text-zinc-500 hover:text-amber-400 flex items-center justify-center transition-all duration-200 transform active:scale-95" title="Play sample sentence (' + kb.getDisplayKey('sentence_audio') + ')">' +
+              '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.875v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>' +
             '</button>' +
-            '<span class="text-[10px] uppercase font-bold tracking-widest text-zinc-500 mt-1.5">Ctrl+Space</span>' +
-            '<span id="sentence-hint" class="hidden text-[10px] font-medium text-zinc-500">F2 for example</span>' +
-          '</div>' +
+          '</span>' +
         '</div>' +
-        '<div class="flex-shrink-0 flex flex-col items-center w-full">' +
-          // Proficiency badge area — fixed height, elements always reserve space to prevent layout shifts
-          '<div class="flex flex-col items-center gap-0.5 h-10">' +
-            '<div id="proficiency-badge" class="transition-all duration-300 flex items-center gap-1.5 px-3 py-1 rounded-full h-6 text-xs font-bold border min-w-[6.5rem] justify-center">' +
-              '<span id="prof-badge-dot" class="w-1.5 h-1.5 rounded-full flex-shrink-0"></span>' +
+
+        // Main interaction area
+        '<div class="flex-1 flex flex-col items-center justify-center w-full px-4 min-h-0">' +
+          '<div id="feedback-ring" class="relative rounded-2xl transition-all duration-300 p-0.5 bg-zinc-800 w-full max-w-md mx-auto">' +
+            '<input type="text" id="dictation-input" autocomplete="off" spellcheck="false" placeholder="Type the word you hear…" class="w-full text-center bg-zinc-950 text-xl font-bold font-mono py-4 px-5 rounded-2xl focus:outline-none text-zinc-100 tracking-wider placeholder-zinc-700" />' +
+            '<div id="word-countdown" class="hidden absolute right-3 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-brand-500/10 border border-brand-500/20 text-brand-400 font-bold rounded-md text-xs font-mono">10s</div>' +
+          '</div>' +
+          '<div id="hard-slots-row" class="hidden flex items-center justify-center gap-1.5 flex-wrap py-3 w-full max-w-md mx-auto"></div>' +
+        '</div>' +
+
+        // Reveal drawer: always visible, fixed min-height, badge absolutely positioned
+        '<div id="reveal-drawer" class="flex-shrink-0 w-full max-w-md mx-auto border-t border-zinc-800/30 h-[140px] relative">' +
+          // Result content: always visible, disabled with placeholders before answer
+          '<div id="reveal-result-area" class="absolute top-3 left-4 right-4">' +
+            '<div class="flex items-center gap-3">' +
+              '<button id="btn-prev-word" class="flex-shrink-0 text-xs text-zinc-700 flex items-center gap-1 transition-colors cursor-not-allowed px-2 py-1 rounded-md" disabled>' +
+                '<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></button>' +
+              '<span id="reveal-result-text" class="flex-1 text-center text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full text-zinc-600 bg-zinc-800/40 border border-transparent">—</span>' +
+              '<button id="btn-next-word" class="flex-shrink-0 text-xs text-zinc-700 flex items-center gap-1 transition-colors cursor-not-allowed px-2 py-1 rounded-md" disabled>' +
+                '<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>' +
+            '</div>' +
+            '<div class="flex flex-col items-center gap-1 mt-2">' +
+              '<button id="btn-dictation-continue" class="text-sm font-bold px-4 py-1.5 rounded-xl bg-zinc-800/40 border border-zinc-800 text-zinc-600 cursor-not-allowed transition-all flex items-center gap-2" disabled>' +
+                '<span>Answer to continue</span>' +
+                '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7"/></svg>' +
+              '</button>' +
+              '<span class="text-[10px] text-zinc-600 font-medium">or press ' + kb.renderKbd('submit_answer') + '</span>' +
+            '</div>' +
+          '</div>' +
+          // Proficiency badge: absolutely positioned, always visible, position never changes
+          '<div id="reveal-placeholder" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center gap-3">' +
+            '<div id="proficiency-badge" class="flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold border cursor-pointer hover:ring-1 hover:ring-white/10 transition-all duration-300 flex-shrink-0" title="Click to cycle proficiency">' +
+              '<span id="prof-badge-dot" class="w-2 h-2 rounded-full flex-shrink-0"></span>' +
               '<span id="prof-badge-label" class="whitespace-nowrap">System</span>' +
             '</div>' +
-            '<button id="btn-reset-proficiency" class="invisible text-[10px] font-semibold text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors h-4" title="Reset to system-assigned proficiency">Reset</button>' +
-          '</div>' +
-          '<div class="w-full max-w-md space-y-1.5">' +
-            '<div id="feedback-ring" class="relative rounded-2xl transition-all duration-300 p-0.5 bg-zinc-800">' +
-              '<input type="text" id="dictation-input" autocomplete="off" spellcheck="false" placeholder="Type the word and press Enter..." class="w-full text-center bg-zinc-950 text-xl font-bold font-mono py-3 px-5 rounded-2xl focus:outline-none text-zinc-100 tracking-wider placeholder-zinc-700" />' +
-              '<div id="word-countdown" class="hidden absolute right-3 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-brand-500/10 border border-brand-500/20 text-brand-400 font-bold rounded-md text-xs font-mono">10s</div>' +
-            '</div>' +
-            // Hard mode: letter slots (standalone, not wrapped in feedback ring)
-            '<div id="hard-slots-row" class="hidden flex items-center justify-center gap-1.5 flex-wrap py-2"></div>' +
-            '<div class="flex justify-between items-center text-[10px] text-zinc-500 px-1 font-semibold uppercase tracking-wider">' +
-              '<span><kbd class="bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-mono font-bold">`</kbd> prof.</span>' +
-              '<span id="dict-input-hint">Enter</span>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div id="reveal-drawer" class="flex-shrink-0 w-full max-w-md border-t border-zinc-800/30 pt-3 invisible opacity-0 transition-all duration-300 flex-1 flex items-start justify-center">' +
-          '<div class="w-full">' +
-            '<div class="flex items-center justify-between gap-3 flex-wrap">' +
-              '<div id="reveal-result-badge">' +
-                '<span id="reveal-result-text" class="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full"></span>' +
-              '</div>' +
-              '<div class="flex items-center gap-1.5 flex-wrap">' +
-                '<button id="btn-prev-word" class="text-xs text-zinc-600 flex items-center gap-1 transition-colors cursor-not-allowed" title="Previous word" disabled>' +
-                  '<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Prev</button>' +
-                '<button id="btn-next-word" class="text-xs text-zinc-600 flex items-center gap-1 transition-colors cursor-not-allowed" title="Next word" disabled>' +
-                  'Next<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>' +
-                '<button id="btn-jump-current" class="text-xs text-zinc-500 hover:text-amber-400 flex items-center gap-1 transition-colors hidden" title="Jump to current word">' +
-                  '<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>Current</button>' +
-              '</div>' +
-            '</div>' +
-            '<div id="press-enter-hint" class="text-center text-xs text-brand-400 font-bold tracking-widest uppercase animate-bounce-soft mt-2">' +
-              'Press Enter to advance</div>' +
+            '<button id="btn-reset-proficiency" class="hidden text-[10px] font-semibold text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors" title="Reset to system-assigned proficiency">Reset</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -118,24 +118,51 @@ ns.dictation = {
     document.getElementById('btn-dictation-pronounce').addEventListener('click', function() {
       ns.sessionCore.playActiveWordAudio();
     });
+    document.getElementById('btn-sentence-audio').addEventListener('click', function() {
+      self.playSentence();
+    });
+    document.getElementById('proficiency-badge').addEventListener('click', function() {
+      ns.sessionCore.cycleWordProficiency();
+    });
     document.getElementById('btn-reset-proficiency').addEventListener('click', function() { ns.sessionCore.resetWordProficiency(); });
     document.getElementById('btn-prev-word').addEventListener('click', function() { ns.sessionCore.goToPrevWord(); });
     document.getElementById('btn-next-word').addEventListener('click', function() { ns.sessionCore.goToNextWord(); });
-    document.getElementById('btn-jump-current').addEventListener('click', function() { ns.sessionCore.jumpToCurrent(); });
+    document.getElementById('btn-dictation-continue').addEventListener('click', function() { ns.sessionCore.advance(); });
   },
 
   _activateWord: function(wordData) {
     var isHard = this._isHardMode();
     var input = document.getElementById('dictation-input');
     var slotsRow = document.getElementById('hard-slots-row');
-    var hint = document.getElementById('dict-input-hint');
     var feedback = document.getElementById('feedback-ring');
+
+    // Reset drawer to placeholder state (always visible, disabled before answer)
+    var resultBadge = document.getElementById('reveal-result-text');
+    if (resultBadge) {
+      resultBadge.textContent = '—';
+      resultBadge.className = 'flex-1 text-center text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full text-zinc-600 bg-zinc-800/40 border border-transparent';
+    }
+    var continueBtn = document.getElementById('btn-dictation-continue');
+    if (continueBtn) {
+      continueBtn.disabled = true;
+      continueBtn.className = 'text-sm font-bold px-4 py-1.5 rounded-xl bg-zinc-800/40 border border-zinc-800 text-zinc-600 cursor-not-allowed transition-all flex items-center gap-2';
+      continueBtn.style.boxShadow = '';
+    }
+
+    this.updateProficiencyBadge(ns.sessionCore.getCurrentWordProficiency(), ns.sessionCore.isManualProficiency());
+
+    // Sentence audio button visibility
+    var wordId = ns.centralDictionary.getWordId(wordData.word);
+    var sentenceBtn = document.getElementById('btn-sentence-audio');
+    if (sentenceBtn) {
+      var hasSentence = typeof SENTENCE_DATA !== 'undefined' && SENTENCE_DATA[wordId] && SENTENCE_DATA[wordId].length > 0;
+      sentenceBtn.classList.toggle('hidden', !hasSentence);
+    }
 
     if (isHard) {
       if (input) input.classList.add('hidden');
       if (feedback) feedback.classList.add('hidden');
       if (slotsRow) slotsRow.classList.remove('hidden');
-      if (hint) hint.textContent = 'Type letter by letter';
 
       this._hardTargetWord = wordData.word;
       this._hardFilled = 0;
@@ -156,9 +183,8 @@ ns.dictation = {
       }
     } else {
       if (input) { input.classList.remove('hidden'); input.value = ''; input.readOnly = false; setTimeout(function() { input.focus(); }, 80); }
-      if (feedback) { feedback.classList.remove('hidden'); feedback.className = 'relative rounded-2xl p-0.5 bg-zinc-800 transition-all duration-300'; }
+      if (feedback) { feedback.classList.remove('hidden'); feedback.className = 'relative rounded-2xl p-0.5 bg-zinc-800 transition-all duration-300 w-full max-w-md mx-auto'; }
       if (slotsRow) slotsRow.classList.add('hidden');
-      if (hint) hint.textContent = 'Enter';
     }
   },
 
@@ -205,7 +231,6 @@ ns.dictation = {
       slot.textContent = '';
       slot.className = this._hardSlotClass;
     }
-    // Recalculate _hardErrors from remaining filled slots
     this._hardErrors = false;
     for (var i = 0; i < this._hardFilled; i++) {
       var s = document.getElementById('dslot-' + i);
@@ -225,16 +250,19 @@ ns.dictation = {
     if (isCorrect) {
       sc.onCorrectAnswer(wordData, this._hardTargetWord, elapsed);
     } else {
-      sc.onWrongAnswer(wordData, this._hardTargetWord, elapsed);
+      var typedLetters = [];
+      for (var k = 0; k < this._hardTargetWord.length; k++) {
+        var sl = document.getElementById('dslot-' + k);
+        typedLetters.push(sl && sl.textContent ? sl.textContent : '');
+      }
+      sc.onWrongAnswer(wordData, typedLetters.join(''), elapsed);
       this.updateProficiencyBadge(sc.getCurrentWordProficiency(), sc.isManualProficiency());
 
-      // Repaint all slots with correct letters, highlighting errors in amber
       for (var i = 0; i < this._hardTargetWord.length; i++) {
         var slot = document.getElementById('dslot-' + i);
         if (slot) {
           slot.textContent = this._hardTargetWord[i];
           if (slot.classList.contains('border-rose-500/50')) {
-            // Was typed wrong — show correct letter in amber
             slot.className = this._hardSlotClass.replace('border-zinc-700/60', 'border-amber-500/50')
               .replace('bg-zinc-900/50', 'bg-amber-500/10') + ' text-amber-400';
           }
@@ -256,31 +284,30 @@ ns.dictation = {
     var wordData = ns.centralDictionary.getById(wordId);
     if (!wordData) return;
 
-    if (e.key === 'F2') {
+    var kb = ns.keybindings;
+
+    if (kb.matchesBinding(e, 'sentence_audio')) {
       e.preventDefault();
       this.playSentence();
       return;
     }
 
-    if (e.ctrlKey && e.code === 'Space') {
+    if (kb.matchesBinding(e, 'word_audio')) {
       e.preventDefault();
       ns.sessionCore.playActiveWordAudio();
       return;
     }
 
-    if (e.key === '`') {
+    if (kb.matchesBinding(e, 'cycle_proficiency')) {
       e.preventDefault();
       sc.cycleWordProficiency();
       return;
     }
 
-    // Hard mode: letter-by-letter
     if (this._isHardMode()) {
       if (ns.state.wrongAnswerAttempted) {
-        if (e.key === 'Enter') { e.preventDefault(); sc.advance(); }
-        // Let backtick, F2, Ctrl+Space, arrow keys through even after answer
-        if (e.key === '`' || e.key === 'F2' || (e.ctrlKey && e.key === ' ') || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          // fall through to handlers below
+        if (kb.matchesBinding(e, 'submit_answer')) { e.preventDefault(); sc.advance(); }
+        if (kb.matchesBinding(e, 'cycle_proficiency') || kb.matchesBinding(e, 'sentence_audio') || kb.matchesBinding(e, 'word_audio') || kb.matchesBinding(e, 'prev_word') || kb.matchesBinding(e, 'next_word')) {
         } else {
           return;
         }
@@ -288,12 +315,11 @@ ns.dictation = {
       if (!ns.state.wrongAnswerAttempted) {
         if (e.key === 'Backspace') { e.preventDefault(); this._handleHardBackspace(); return; }
         if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) { e.preventDefault(); this._handleHardKey(e.key); return; }
-        if (e.key !== '`' && e.key !== 'F2' && !(e.ctrlKey && e.key === ' ') && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Enter') return;
+        if (!kb.matchesBinding(e, 'cycle_proficiency') && !kb.matchesBinding(e, 'sentence_audio') && !kb.matchesBinding(e, 'word_audio') && !kb.matchesBinding(e, 'prev_word') && !kb.matchesBinding(e, 'next_word') && !kb.matchesBinding(e, 'submit_answer')) return;
       }
     }
 
-    // Standard mode
-    if (e.key === 'Enter') {
+    if (kb.matchesBinding(e, 'submit_answer')) {
       e.preventDefault();
       clearInterval(sc.getTimerId());
 
@@ -314,7 +340,7 @@ ns.dictation = {
         sc.onCorrectAnswer(wordData, value, elapsed);
         input.readOnly = true;
         var feedback = document.getElementById('feedback-ring');
-        if (feedback) feedback.className = 'relative rounded-2xl p-0.5 bg-emerald-500 transition-all duration-300';
+        if (feedback) feedback.className = 'relative rounded-2xl p-0.5 bg-emerald-500 transition-all duration-300 w-full max-w-md mx-auto';
         this._revealAnswer(wordData, true, value);
         ns.state.wrongAnswerAttempted = true;
       } else {
@@ -322,7 +348,7 @@ ns.dictation = {
         this.updateProficiencyBadge(sc.getCurrentWordProficiency(), sc.isManualProficiency());
         input.readOnly = true;
         var feedbackRing = document.getElementById('feedback-ring');
-        if (feedbackRing) feedbackRing.className = 'relative rounded-2xl p-0.5 bg-rose-500 transition-all duration-300 animate-shake';
+        if (feedbackRing) feedbackRing.className = 'relative rounded-2xl p-0.5 bg-rose-500 transition-all duration-300 animate-shake w-full max-w-md mx-auto';
         this._revealAnswer(wordData, false, value);
         ns.state.wrongAnswerAttempted = true;
       }
@@ -332,27 +358,27 @@ ns.dictation = {
   // ── Reveal answer & word card ──
 
   _revealAnswer: function(wordData, isCorrect, userInput, fromNav) {
-    var drawer = document.getElementById('reveal-drawer');
-    if (drawer) drawer.classList.remove('invisible', 'opacity-0');
-
     var sc = ns.sessionCore;
-    var isReviewing = sc.isReviewing();
 
     var resultBadge = document.getElementById('reveal-result-text');
     if (resultBadge) {
       if (isCorrect) {
         resultBadge.textContent = 'Correct';
-        resultBadge.className = 'text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+        resultBadge.className = 'flex-1 text-center text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+        resultBadge.style.boxShadow = '0 0 12px rgba(52,211,153,0.30)';
       } else {
         resultBadge.textContent = 'Incorrect';
-        resultBadge.className = 'text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30';
+        resultBadge.className = 'flex-1 text-center text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30';
+        resultBadge.style.boxShadow = '0 0 12px rgba(251,113,133,0.30)';
       }
     }
 
     var input = document.getElementById('dictation-input');
-    if (input && fromNav && !this._isHardMode()) input.value = userInput;
+    if (input && fromNav) {
+      if (!this._isHardMode()) input.value = userInput;
+      input.readOnly = true;
+    }
 
-    // Hard mode: when navigating back, rebuild and fill letter slots
     if (this._isHardMode() && fromNav) {
       this._hardTargetWord = wordData.word;
       if (input) input.classList.add('hidden');
@@ -378,21 +404,14 @@ ns.dictation = {
       }
     }
 
-    // Render word card
-    var cardContainer = document.getElementById('session-wordcard-content');
-    var flipper = document.getElementById('session-wordcard-flipper');
-    if (cardContainer && ns.wordcard && ns.wordcard._renderFullCard) {
-      var reviewId = isReviewing ? sc.getReviewWordId() : ns.centralDictionary.getWordId(wordData.word);
-      ns.wordcard._renderFullCard(reviewId, cardContainer);
-      var card = cardContainer.querySelector('.space-y-5');
-      if (card) card.classList.replace('space-y-5', 'space-y-3.5');
+    // Enable continue button with active style
+    var continueBtn = document.getElementById('btn-dictation-continue');
+    if (continueBtn) {
+      continueBtn.disabled = false;
+      continueBtn.className = 'text-sm font-bold px-4 py-1.5 rounded-xl bg-brand-500/15 border border-brand-500/30 text-brand-400 hover:bg-brand-500/25 active:scale-95 transition-all flex items-center gap-2';
+      continueBtn.style.boxShadow = '0 0 14px rgba(20,184,166,0.35)';
     }
-    if (flipper && !flipper.classList.contains('flipped')) {
-      requestAnimationFrame(function() {
-        flipper.style.transform = 'rotateY(180deg)';
-        flipper.classList.add('flipped');
-      });
-    }
+    ns.sessionCore.renderWordCard(wordData);
 
     this.updateProficiencyBadge(sc.getCurrentWordProficiency(), sc.isManualProficiency());
     sc.updateNavButtons();
@@ -415,15 +434,13 @@ ns.dictation = {
       mastered:   { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', dot: 'bg-emerald-400' }
     };
     var c = colors[prof] || colors.unlearned;
-    badge.className = 'transition-all duration-300 flex items-center gap-1.5 px-3 py-1 rounded-full h-6 text-xs font-bold border min-w-[6.5rem] justify-center ' + c.bg + ' ' + c.border + ' ' + c.text;
-    dot.className = 'w-1.5 h-1.5 rounded-full flex-shrink-0 ' + c.dot;
+    badge.className = 'flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold border cursor-pointer hover:ring-1 hover:ring-white/10 transition-all duration-300 flex-shrink-0 ' + c.bg + ' ' + c.border + ' ' + c.text;
+    dot.className = 'w-2 h-2 rounded-full flex-shrink-0 ' + c.dot;
     var labels = { unlearned: 'Unlearned', learning: 'Learning', reviewing: 'Reviewing', mastered: 'Mastered' };
     label.textContent = (isManual ? 'Manual: ' : '') + (labels[prof] || 'Unlearned');
 
-    // Use invisible (not hidden) so the reset button always reserves space
-    // — prevents layout shifts when toggling proficiency
     if (resetBtn) {
-      resetBtn.classList.toggle('invisible', !isManual);
+      resetBtn.classList.toggle('hidden', !isManual);
     }
   },
 
